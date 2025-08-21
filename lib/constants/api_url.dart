@@ -1,2 +1,2 @@
 // Fichier généré automatiquement
-const String API_BASE_URL = 'https://b611764168ec.ngrok-free.app';
+const String API_BASE_URL = 'https://5544467a7fc4.ngrok-free.app';

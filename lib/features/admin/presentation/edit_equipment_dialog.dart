@@ -291,42 +291,41 @@ class _EditEquipmentDialogState extends State<EditEquipmentDialog> {
   Widget build(BuildContext context) {
     return Dialog(
       insetPadding: const EdgeInsets.all(16),
-      child: Scaffold(
-        appBar: AppBar(
-          title: Text(
-            widget.mode == _DialogMode.add ? 'Ajouter' : 'Modifier',
-            style: const TextStyle(fontSize: 18),
-          ),
-          automaticallyImplyLeading: false,
-          actions: [
-            if (widget.mode == _DialogMode.edit)
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 680, maxHeight: 620),
+        child: Scaffold(
+          appBar: AppBar(
+            title: Text(widget.mode == _DialogMode.add
+                ? 'Ajouter un équipement'
+                : 'Modifier un équipement'),
+            automaticallyImplyLeading: false,
+            actions: [
+              if (widget.mode == _DialogMode.edit)
+                IconButton(
+                  tooltip: 'Supprimer',
+                  onPressed: _deleting ? null : _delete,
+                  icon: _deleting
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.delete_outline),
+                ),
               IconButton(
-                tooltip: 'Supprimer',
-                onPressed: _deleting ? null : _delete,
-                icon: _deleting
-                    ? const SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.delete_outline, size: 20),
+                tooltip: 'Fermer',
+                onPressed: () => Navigator.of(context).pop(EditEquipmentResult.none),
+                icon: const Icon(Icons.close),
               ),
-            IconButton(
-              tooltip: 'Fermer',
-              onPressed: () => Navigator.of(context).pop(EditEquipmentResult.none),
-              icon: const Icon(Icons.close, size: 20),
-            ),
-          ],
-        ),
-        body: SafeArea(
-          child: Column(
-            children: [
-              Expanded(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
+            ],
+          ),
+          body: SafeArea(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                children: [
+                  _grid(
                     children: [
-                      // Champs de base
                       DropdownButtonFormField<models.Categorie>(
                         value: _categorie,
                         decoration: const InputDecoration(
@@ -337,15 +336,11 @@ class _EditEquipmentDialogState extends State<EditEquipmentDialog> {
                         items: models.Categorie.values
                             .map((c) => DropdownMenuItem(
                                   value: c,
-                                  child: Text(
-                                    models.kCategoryLabel[c]!,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
+                                  child: Text(models.kCategoryLabel[c]!),
                                 ))
                             .toList(),
                         onChanged: (v) => setState(() => _categorie = v!),
                       ),
-                      const SizedBox(height: 12),
                       TextFormField(
                         controller: _reference,
                         decoration: const InputDecoration(
@@ -354,7 +349,6 @@ class _EditEquipmentDialogState extends State<EditEquipmentDialog> {
                           isDense: true,
                         ),
                       ),
-                      const SizedBox(height: 12),
                       TextFormField(
                         controller: _modele,
                         decoration: const InputDecoration(
@@ -363,7 +357,6 @@ class _EditEquipmentDialogState extends State<EditEquipmentDialog> {
                           isDense: true,
                         ),
                       ),
-                      const SizedBox(height: 12),
                       TextFormField(
                         controller: _nomCommercial,
                         decoration: const InputDecoration(
@@ -372,7 +365,6 @@ class _EditEquipmentDialogState extends State<EditEquipmentDialog> {
                           isDense: true,
                         ),
                       ),
-                      const SizedBox(height: 12),
                       TextFormField(
                         controller: _marque,
                         decoration: const InputDecoration(
@@ -381,17 +373,13 @@ class _EditEquipmentDialogState extends State<EditEquipmentDialog> {
                           isDense: true,
                         ),
                       ),
-                      const SizedBox(height: 12),
                       Row(
                         children: [
                           Expanded(
-                            flex: 2,
                             child: TextFormField(
                               controller: _prixUnitaire,
-                              keyboardType: const TextInputType.numberWithOptions(
-                                signed: false,
-                                decimal: true,
-                              ),
+                              keyboardType:
+                                  const TextInputType.numberWithOptions(signed: false, decimal: true),
                               decoration: const InputDecoration(
                                 labelText: 'Prix unitaire *',
                                 border: OutlineInputBorder(),
@@ -419,58 +407,43 @@ class _EditEquipmentDialogState extends State<EditEquipmentDialog> {
                         ],
                       ),
 
-                      // Champs spécifiques par catégorie
                       if (_categorie == models.Categorie.panneau_solaire ||
-                          _categorie == models.Categorie.onduleur) ...[
-                        const SizedBox(height: 12),
+                          _categorie == models.Categorie.onduleur)
                         TextFormField(
                           controller: _puissanceW,
-                          keyboardType: const TextInputType.numberWithOptions(
-                            signed: false,
-                            decimal: true,
-                          ),
+                          keyboardType:
+                              const TextInputType.numberWithOptions(signed: false, decimal: true),
                           decoration: const InputDecoration(
                             labelText: 'Puissance (W)',
                             border: OutlineInputBorder(),
                             isDense: true,
                           ),
                         ),
-                      ],
-
                       if (_categorie == models.Categorie.panneau_solaire) ...[
-                        const SizedBox(height: 12),
                         TextFormField(
                           controller: _tensionNominaleV,
-                          keyboardType: const TextInputType.numberWithOptions(
-                            signed: false,
-                            decimal: true,
-                          ),
+                          keyboardType:
+                              const TextInputType.numberWithOptions(signed: false, decimal: true),
                           decoration: const InputDecoration(
                             labelText: 'Tension nominale (V)',
                             border: OutlineInputBorder(),
                             isDense: true,
                           ),
                         ),
-                        const SizedBox(height: 12),
                         TextFormField(
                           controller: _vmpV,
-                          keyboardType: const TextInputType.numberWithOptions(
-                            signed: false,
-                            decimal: true,
-                          ),
+                          keyboardType:
+                              const TextInputType.numberWithOptions(signed: false, decimal: true),
                           decoration: const InputDecoration(
                             labelText: 'Vmp (V)',
                             border: OutlineInputBorder(),
                             isDense: true,
                           ),
                         ),
-                        const SizedBox(height: 12),
                         TextFormField(
                           controller: _vocV,
-                          keyboardType: const TextInputType.numberWithOptions(
-                            signed: false,
-                            decimal: true,
-                          ),
+                          keyboardType:
+                              const TextInputType.numberWithOptions(signed: false, decimal: true),
                           decoration: const InputDecoration(
                             labelText: 'Voc (V)',
                             border: OutlineInputBorder(),
@@ -478,22 +451,17 @@ class _EditEquipmentDialogState extends State<EditEquipmentDialog> {
                           ),
                         ),
                       ],
-
                       if (_categorie == models.Categorie.onduleur) ...[
-                        const SizedBox(height: 12),
                         TextFormField(
                           controller: _puissanceSurgebW,
-                          keyboardType: const TextInputType.numberWithOptions(
-                            signed: false,
-                            decimal: true,
-                          ),
+                          keyboardType:
+                              const TextInputType.numberWithOptions(signed: false, decimal: true),
                           decoration: const InputDecoration(
                             labelText: 'Surge (W)',
                             border: OutlineInputBorder(),
                             isDense: true,
                           ),
                         ),
-                        const SizedBox(height: 12),
                         TextFormField(
                           controller: _entreeDcV,
                           decoration: const InputDecoration(
@@ -503,28 +471,21 @@ class _EditEquipmentDialogState extends State<EditEquipmentDialog> {
                           ),
                         ),
                       ],
-
                       if (_categorie == models.Categorie.batterie) ...[
-                        const SizedBox(height: 12),
                         TextFormField(
                           controller: _capaciteAh,
-                          keyboardType: const TextInputType.numberWithOptions(
-                            signed: false,
-                            decimal: true,
-                          ),
+                          keyboardType:
+                              const TextInputType.numberWithOptions(signed: false, decimal: true),
                           decoration: const InputDecoration(
                             labelText: 'Capacité (Ah)',
                             border: OutlineInputBorder(),
                             isDense: true,
                           ),
                         ),
-                        const SizedBox(height: 12),
                         TextFormField(
                           controller: _tensionNominaleV,
-                          keyboardType: const TextInputType.numberWithOptions(
-                            signed: false,
-                            decimal: true,
-                          ),
+                          keyboardType:
+                              const TextInputType.numberWithOptions(signed: false, decimal: true),
                           decoration: const InputDecoration(
                             labelText: 'Tension nominale (V)',
                             border: OutlineInputBorder(),
@@ -532,9 +493,7 @@ class _EditEquipmentDialogState extends State<EditEquipmentDialog> {
                           ),
                         ),
                       ],
-
                       if (_categorie == models.Categorie.regulateur) ...[
-                        const SizedBox(height: 12),
                         DropdownButtonFormField<String>(
                           value: _typeRegulateur,
                           decoration: const InputDecoration(
@@ -548,81 +507,71 @@ class _EditEquipmentDialogState extends State<EditEquipmentDialog> {
                           ],
                           onChanged: (v) => setState(() => _typeRegulateur = v ?? 'MPPT'),
                         ),
-                        const SizedBox(height: 12),
                         TextFormField(
                           controller: _courantA,
-                          keyboardType: const TextInputType.numberWithOptions(
-                            signed: false,
-                            decimal: true,
-                          ),
+                          keyboardType:
+                              const TextInputType.numberWithOptions(signed: false, decimal: true),
                           decoration: const InputDecoration(
                             labelText: 'Courant (A)',
                             border: OutlineInputBorder(),
                             isDense: true,
                           ),
                         ),
-                        const SizedBox(height: 12),
                         TextFormField(
                           controller: _pvVocMaxV,
-                          keyboardType: const TextInputType.numberWithOptions(
-                            signed: false,
-                            decimal: true,
-                          ),
+                          keyboardType:
+                              const TextInputType.numberWithOptions(signed: false, decimal: true),
                           decoration: const InputDecoration(
                             labelText: 'PV Voc max (V)',
                             border: OutlineInputBorder(),
                             isDense: true,
                           ),
                         ),
-                        const SizedBox(height: 12),
-                        TextFormField(
-                          controller: _mpptVMinV,
-                          keyboardType: const TextInputType.numberWithOptions(
-                            signed: false,
-                            decimal: true,
-                          ),
-                          decoration: const InputDecoration(
-                            labelText: 'MPPT V min (V)',
-                            border: OutlineInputBorder(),
-                            isDense: true,
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        TextFormField(
-                          controller: _mpptVMaxV,
-                          keyboardType: const TextInputType.numberWithOptions(
-                            signed: false,
-                            decimal: true,
-                          ),
-                          decoration: const InputDecoration(
-                            labelText: 'MPPT V max (V)',
-                            border: OutlineInputBorder(),
-                            isDense: true,
-                          ),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: TextFormField(
+                                controller: _mpptVMinV,
+                                keyboardType: const TextInputType.numberWithOptions(
+                                    signed: false, decimal: true),
+                                decoration: const InputDecoration(
+                                  labelText: 'MPPT V min (V)',
+                                  border: OutlineInputBorder(),
+                                  isDense: true,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: TextFormField(
+                                controller: _mpptVMaxV,
+                                keyboardType: const TextInputType.numberWithOptions(
+                                    signed: false, decimal: true),
+                                decoration: const InputDecoration(
+                                  labelText: 'MPPT V max (V)',
+                                  border: OutlineInputBorder(),
+                                  isDense: true,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ],
-
                       if (_categorie == models.Categorie.cable) ...[
-                        const SizedBox(height: 12),
                         TextFormField(
                           controller: _sectionMm2,
-                          keyboardType: const TextInputType.numberWithOptions(
-                            signed: false,
-                            decimal: true,
-                          ),
+                          keyboardType:
+                              const TextInputType.numberWithOptions(signed: false, decimal: true),
                           decoration: const InputDecoration(
                             labelText: 'Section (mm²)',
                             border: OutlineInputBorder(),
                             isDense: true,
                           ),
                         ),
-                        const SizedBox(height: 12),
                         TextFormField(
                           controller: _ampaciteA,
-                          keyboardType: const TextInputType.numberWithOptions(
-                            signed: false,
-                            decimal: true,
-                          ),
+                          keyboardType:
+                              const TextInputType.numberWithOptions(signed: false, decimal: true),
                           decoration: const InputDecoration(
                             labelText: 'Ampacité (A)',
                             border: OutlineInputBorder(),
@@ -632,52 +581,54 @@ class _EditEquipmentDialogState extends State<EditEquipmentDialog> {
                       ],
                     ],
                   ),
-                ),
-              ),
-
-              // Boutons d'action
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade50,
-                  border: Border(
-                    top: BorderSide(color: Colors.grey.shade300),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: _saving ? null : () => Navigator.of(context).pop(EditEquipmentResult.none),
+                          child: const Text('Annuler'),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: _saving ? null : _save,
+                          icon: _saving
+                              ? const SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                                )
+                              : const Icon(Icons.save_outlined),
+                          label: Text(widget.mode == _DialogMode.add ? 'Ajouter' : 'Enregistrer'),
+                        ),
+                      ),
+                    ],
                   ),
-                ),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: _saving
-                            ? null
-                            : () => Navigator.of(context).pop(EditEquipmentResult.none),
-                        child: const Text('Annuler'),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: ElevatedButton.icon(
-                        onPressed: _saving ? null : _save,
-                        icon: _saving
-                            ? const SizedBox(
-                                width: 16,
-                                height: 16,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: Colors.white,
-                                ),
-                              )
-                            : const Icon(Icons.save_outlined, size: 18),
-                        label: Text(widget.mode == _DialogMode.add ? 'Ajouter' : 'Enregistrer'),
-                      ),
-                    ),
-                  ],
-                ),
+                ],
               ),
-            ],
+            ),
           ),
         ),
       ),
+    );
+  }
+
+  Widget _grid({required List<Widget> children}) {
+    return LayoutBuilder(
+      builder: (ctx, c) {
+        final cols = c.maxWidth >= 640 ? 2 : 1;
+        return GridView.count(
+          crossAxisCount: cols,
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          mainAxisSpacing: 10,
+          crossAxisSpacing: 10,
+          childAspectRatio: 3.0,
+          children: children,
+        );
+      },
     );
   }
 }
