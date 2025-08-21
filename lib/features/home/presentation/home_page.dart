@@ -42,25 +42,39 @@ class HomePage extends StatelessWidget {
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: const [
-                      Text('Calculateur Solaire',
-                          style: TextStyle(
-                            fontWeight: FontWeight.w700,
-                            color: Color(0xFF111827),
-                          )),
+                      Text(
+                        'Calculateur Solaire',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF111827),
+                        ),
+                      ),
                       SizedBox(height: 2),
-                      Text('Dimensionnement photovoltaïque',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Color(0xFF4B5563),
-                          )),
+                      Text(
+                        'Dimensionnement photovoltaïque',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Color(0xFF4B5563),
+                        ),
+                      ),
                     ],
                   ),
-                  const Spacer(),
-                  _GradientButton.icon(
-                    onPressed: () => context.go('/calculate'),
-                    label: 'Calculer',
-                    icon: Icons.calculate_outlined,
-                  ),
+                  const Spacer(), // Pousse l'IconButton à droite
+    
+    IconButton(
+      onPressed: () => context.go('/calculate'),
+      icon: Icon(
+        Icons.calculate_outlined,
+        color: Colors.white,
+      ),
+      style: IconButton.styleFrom(
+        backgroundColor: Color(0xFF2563EB),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10),
+        ),
+        padding: EdgeInsets.all(8),
+      ),
+    ),
                 ],
               ),
             ),
@@ -68,7 +82,10 @@ class HomePage extends StatelessWidget {
             // HERO
             SliverToBoxAdapter(
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 24,
+                ),
                 child: Column(
                   children: [
                     const SizedBox(height: 8),
@@ -104,7 +121,11 @@ class HomePage extends StatelessWidget {
                     const Text(
                       'Calculez facilement la puissance, le nombre de panneaux et batteries nécessaires pour votre installation photovoltaïque autonome. ',
                       textAlign: TextAlign.center,
-                      style: TextStyle(fontSize: 18, color: Color(0xFF4B5563), height: 1.45),
+                      style: TextStyle(
+                        fontSize: 18,
+                        color: Color(0xFF4B5563),
+                        height: 1.45,
+                      ),
                     ),
                     const Text(
                       'Gratuit et sans inscription.',
@@ -135,25 +156,54 @@ class HomePage extends StatelessWidget {
                         Row(
                           mainAxisSize: MainAxisSize.min,
                           children: const [
-                            Icon(Icons.verified_rounded, size: 18, color: Color(0xFF16A34A)),
+                            Icon(
+                              Icons.verified_rounded,
+                              size: 18,
+                              color: Color(0xFF16A34A),
+                            ),
                             SizedBox(width: 6),
-                            Text('Aucune inscription requise',
-                                style: TextStyle(color: Color(0xFF4B5563))),
+                            Text(
+                              'Aucune inscription requise',
+                              style: TextStyle(color: Color(0xFF4B5563)),
+                            ),
                           ],
                         ),
                       ],
                     ),
                     const SizedBox(height: 28),
-
-                    // STATS
-                    _ResponsiveGrid(
-                      columnsForWidth: (w) => w >= 900 ? 3 : 1,
-                      gap: 14,
-                      children: const [
-                        _StatCard(value: '100+', label: 'Calculs effectués', icon: Icons.calculate),
-                        _StatCard(value: '95%', label: 'Testeurs satisfaits', icon: Icons.star_rate),
-                        _StatCard(value: '20+', label: 'Équipements référencés', icon: Icons.bolt),
-                      ],
+                    // STATS pleine largeur
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Column(
+                        children: [
+                          SizedBox(
+                            width: double.infinity,
+                            child: _StatCard(
+                              value: '100+',
+                              label: 'Calculs effectués',
+                              icon: Icons.calculate,
+                            ),
+                          ),
+                          const SizedBox(height: 14),
+                          SizedBox(
+                            width: double.infinity,
+                            child: _StatCard(
+                              value: '95%',
+                              label: 'Testeurs satisfaits',
+                              icon: Icons.star_rate,
+                            ),
+                          ),
+                          const SizedBox(height: 14),
+                          SizedBox(
+                            width: double.infinity,
+                            child: _StatCard(
+                              value: '20+',
+                              label: 'Équipements référencés',
+                              icon: Icons.bolt,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ],
                 ),
@@ -164,9 +214,14 @@ class HomePage extends StatelessWidget {
             SliverToBoxAdapter(
               child: _Section(
                 title: 'Pourquoi choisir notre calculateur ?',
-                subtitle: 'Une solution complète et professionnelle pour dimensionner votre installation solaire',
+                subtitle:
+                    'Une solution complète et professionnelle pour dimensionner votre installation solaire',
                 child: _ResponsiveGrid(
-                  columnsForWidth: (w) => w >= 1000 ? 3 : w >= 650 ? 2 : 1,
+                  columnsForWidth: (w) => w >= 1000
+                      ? 3
+                      : w >= 650
+                      ? 2
+                      : 1,
                   children: const [
                     _FeatureCard(
                       icon: Icons.bolt_outlined,
@@ -206,12 +261,38 @@ class HomePage extends StatelessWidget {
                 title: 'Comment ça marche ?',
                 subtitle: 'Obtenez votre dimensionnement en 4 étapes simples',
                 child: _ResponsiveGrid(
-                  columnsForWidth: (w) => w >= 1200 ? 4 : w >= 900 ? 3 : w >= 600 ? 2 : 1,
+                  columnsForWidth: (w) => w >= 1200
+                      ? 4
+                      : w >= 900
+                      ? 3
+                      : w >= 600
+                      ? 2
+                      : 1,
                   children: const [
-                    _StepCard(step: '1', title: 'Renseignez vos besoins', description: 'Indiquez votre consommation journalière et vos contraintes d\'installation'),
-                    _StepCard(step: '2', title: 'Précisez votre localisation', description: 'L\'irradiation solaire sera calculée automatiquement pour votre région'),
-                    _StepCard(step: '3', title: 'Obtenez vos résultats', description: 'Dimensions, équipements recommandés et coûts estimés instantanément'),
-                    _StepCard(step: '4', title: 'Téléchargez le rapport', description: 'Rapport PDF complet pour votre installateur ou votre projet'),
+                    _StepCard(
+                      step: '1',
+                      title: 'Renseignez vos besoins',
+                      description:
+                          'Indiquez votre consommation journalière et vos contraintes d\'installation',
+                    ),
+                    _StepCard(
+                      step: '2',
+                      title: 'Précisez votre localisation',
+                      description:
+                          'L\'irradiation solaire sera calculée automatiquement pour votre région',
+                    ),
+                    _StepCard(
+                      step: '3',
+                      title: 'Obtenez vos résultats',
+                      description:
+                          'Dimensions, équipements recommandés et coûts estimés instantanément',
+                    ),
+                    _StepCard(
+                      step: '4',
+                      title: 'Téléchargez le rapport',
+                      description:
+                          'Rapport PDF complet pour votre installateur ou votre projet',
+                    ),
                   ],
                 ),
               ),
@@ -220,9 +301,15 @@ class HomePage extends StatelessWidget {
             // CTA SECTION
             SliverToBoxAdapter(
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 16,
+                ),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 22),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 22,
+                  ),
                   decoration: BoxDecoration(
                     gradient: const LinearGradient(
                       colors: [Color(0xFF60A5FA), Color(0xFF4F46E5)],
@@ -233,7 +320,7 @@ class HomePage extends StatelessWidget {
                         color: const Color(0xFF4F46E5).withValues(alpha: 0.25),
                         blurRadius: 20,
                         offset: const Offset(0, 12),
-                      )
+                      ),
                     ],
                   ),
                   child: Column(
@@ -251,7 +338,11 @@ class HomePage extends StatelessWidget {
                       const Text(
                         'Notre calculateur vous donnera une estimation complète en quelques minutes. Commencez dès maintenant, c’est gratuit et sans engagement.',
                         textAlign: TextAlign.center,
-                        style: TextStyle(color: Color(0xFFE0E7FF), fontSize: 16, height: 1.4),
+                        style: TextStyle(
+                          color: Color(0xFFE0E7FF),
+                          fontSize: 16,
+                          height: 1.4,
+                        ),
                       ),
                       const SizedBox(height: 16),
                       Wrap(
@@ -269,8 +360,10 @@ class HomePage extends StatelessWidget {
                             children: const [
                               Icon(Icons.verified, color: Colors.white),
                               SizedBox(width: 6),
-                              Text('Résultats instantanés',
-                                  style: TextStyle(color: Colors.white)),
+                              Text(
+                                'Résultats instantanés',
+                                style: TextStyle(color: Colors.white),
+                              ),
                             ],
                           ),
                         ],
@@ -285,12 +378,13 @@ class HomePage extends StatelessWidget {
             SliverToBoxAdapter(
               child: Container(
                 margin: const EdgeInsets.only(top: 12),
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 20,
+                ),
                 decoration: const BoxDecoration(
                   color: Color(0xFFF9FAFB),
-                  border: Border(
-                    top: BorderSide(color: Color(0xFFE5E7EB)),
-                  ),
+                  border: Border(top: BorderSide(color: Color(0xFFE5E7EB))),
                 ),
                 child: _ResponsiveGrid(
                   columnsForWidth: (w) => w >= 900 ? 3 : 1,
@@ -304,7 +398,10 @@ class HomePage extends StatelessWidget {
                         const SizedBox(height: 10),
                         Text(
                           '© $nowYear Calculateur Solaire.\nTous droits réservés.',
-                          style: const TextStyle(color: Color(0xFF6B7280), fontSize: 12),
+                          style: const TextStyle(
+                            color: Color(0xFF6B7280),
+                            fontSize: 12,
+                          ),
                         ),
                       ],
                     ),
@@ -312,9 +409,14 @@ class HomePage extends StatelessWidget {
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text('Navigation',
-                            style: TextStyle(
-                                fontSize: 16, fontWeight: FontWeight.w700, color: Color(0xFF111827))),
+                        const Text(
+                          'Navigation',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF111827),
+                          ),
+                        ),
                         const SizedBox(height: 8),
                         _FooterLink(
                           label: 'Calculateur',
@@ -331,14 +433,21 @@ class HomePage extends StatelessWidget {
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text('Contact',
-                            style: TextStyle(
-                                fontSize: 16, fontWeight: FontWeight.w700, color: Color(0xFF111827))),
+                        const Text(
+                          'Contact',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF111827),
+                          ),
+                        ),
                         const SizedBox(height: 8),
                         _FooterLink(
                           label: 'nampiasilala@gmail.com',
                           icon: Icons.mail_outline,
-                          onTap: () => _launchUrl(Uri.parse('mailto:nampiasilala@gmail.com')),
+                          onTap: () => _launchUrl(
+                            Uri.parse('mailto:nampiasilala@gmail.com'),
+                          ),
                         ),
                         const SizedBox(height: 8),
                         Wrap(
@@ -347,17 +456,22 @@ class HomePage extends StatelessWidget {
                             _SocialIcon(
                               tooltip: 'Facebook',
                               icon: Icons.public, // placeholder
-                              onTap: () => _launchUrl(Uri.parse('https://facebook.com/')),
+                              onTap: () => _launchUrl(
+                                Uri.parse('https://facebook.com/'),
+                              ),
                             ),
                             _SocialIcon(
                               tooltip: 'Twitter/X',
                               icon: Icons.travel_explore, // placeholder
-                              onTap: () => _launchUrl(Uri.parse('https://twitter.com/')),
+                              onTap: () =>
+                                  _launchUrl(Uri.parse('https://twitter.com/')),
                             ),
                             _SocialIcon(
                               tooltip: 'Instagram',
                               icon: Icons.camera_alt_outlined, // placeholder
-                              onTap: () => _launchUrl(Uri.parse('https://instagram.com/')),
+                              onTap: () => _launchUrl(
+                                Uri.parse('https://instagram.com/'),
+                              ),
                             ),
                           ],
                         ),
@@ -394,7 +508,11 @@ class _Logo extends StatelessWidget {
           width: size,
           alignment: Alignment.center,
           color: Colors.white,
-          child: const Icon(Icons.solar_power, size: 28, color: Color(0xFF2563EB)),
+          child: const Icon(
+            Icons.solar_power,
+            size: 28,
+            color: Color(0xFF2563EB),
+          ),
         ),
       ),
     );
@@ -410,7 +528,8 @@ class _GradientText extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ShaderMask(
-      shaderCallback: (bounds) => gradient.createShader(Offset.zero & bounds.size),
+      shaderCallback: (bounds) =>
+          gradient.createShader(Offset.zero & bounds.size),
       child: Text(text, style: style.copyWith(color: Colors.white)),
     );
   }
@@ -422,7 +541,9 @@ class _GradientButton extends StatelessWidget {
     required this.label,
     required this.icon,
     this.big = false,
-    this.gradient = const LinearGradient(colors: [Color(0xFF2563EB), Color(0xFF4F46E5)]),
+    this.gradient = const LinearGradient(
+      colors: [Color(0xFF2563EB), Color(0xFF4F46E5)],
+    ),
     super.key,
   });
 
@@ -434,8 +555,9 @@ class _GradientButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final padding = big ? const EdgeInsets.symmetric(horizontal: 20, vertical: 14)
-                        : const EdgeInsets.symmetric(horizontal: 14, vertical: 10);
+    final padding = big
+        ? const EdgeInsets.symmetric(horizontal: 20, vertical: 14)
+        : const EdgeInsets.symmetric(horizontal: 14, vertical: 10);
     return DecoratedBox(
       decoration: BoxDecoration(
         gradient: gradient,
@@ -460,12 +582,14 @@ class _GradientButton extends StatelessWidget {
               children: [
                 Icon(icon, color: Colors.white),
                 const SizedBox(width: 10),
-                Text(label,
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: big ? 16 : 14,
-                      fontWeight: FontWeight.w700,
-                    )),
+                Text(
+                  label,
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: big ? 16 : 14,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
               ],
             ),
           ),
@@ -512,11 +636,13 @@ class _LightButton extends StatelessWidget {
               children: [
                 Icon(icon, color: const Color(0xFF2563EB)),
                 const SizedBox(width: 10),
-                Text(label,
-                    style: const TextStyle(
-                      color: Color(0xFF2563EB),
-                      fontWeight: FontWeight.w700,
-                    )),
+                Text(
+                  label,
+                  style: const TextStyle(
+                    color: Color(0xFF2563EB),
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
               ],
             ),
           ),
@@ -527,7 +653,11 @@ class _LightButton extends StatelessWidget {
 }
 
 class _Section extends StatelessWidget {
-  const _Section({required this.title, required this.subtitle, required this.child});
+  const _Section({
+    required this.title,
+    required this.subtitle,
+    required this.child,
+  });
   final String title;
   final String subtitle;
   final Widget child;
@@ -538,20 +668,21 @@ class _Section extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       child: Column(
         children: [
-          Text(title,
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontSize: 26,
-                color: Color(0xFF111827),
-                fontWeight: FontWeight.w800,
-              )),
+          Text(
+            title,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontSize: 26,
+              color: Color(0xFF111827),
+              fontWeight: FontWeight.w800,
+            ),
+          ),
           const SizedBox(height: 6),
-          Text(subtitle,
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontSize: 16,
-                color: Color(0xFF4B5563),
-              )),
+          Text(
+            subtitle,
+            textAlign: TextAlign.center,
+            style: const TextStyle(fontSize: 16, color: Color(0xFF4B5563)),
+          ),
           const SizedBox(height: 18),
           child,
         ],
@@ -575,33 +706,39 @@ class _ResponsiveGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(builder: (context, c) {
-      final cols = columnsForWidth(c.maxWidth).clamp(1, 6);
-      if (cols == 1) {
-        return Column(
-          children: [
-            for (int i = 0; i < children.length; i++) ...[
-              children[i],
-              if (i != children.length - 1) SizedBox(height: gap),
+    return LayoutBuilder(
+      builder: (context, c) {
+        final cols = columnsForWidth(c.maxWidth).clamp(1, 6);
+        if (cols == 1) {
+          return Column(
+            children: [
+              for (int i = 0; i < children.length; i++) ...[
+                children[i],
+                if (i != children.length - 1) SizedBox(height: gap),
+              ],
             ],
-          ],
+          );
+        }
+        return GridView.count(
+          crossAxisCount: cols,
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          crossAxisSpacing: crossAxisSpacing ?? gap,
+          mainAxisSpacing: gap,
+          childAspectRatio: 1.2,
+          children: children,
         );
-      }
-      return GridView.count(
-        crossAxisCount: cols,
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        crossAxisSpacing: crossAxisSpacing ?? gap,
-        mainAxisSpacing: gap,
-        childAspectRatio: 1.2,
-        children: children,
-      );
-    });
+      },
+    );
   }
 }
 
 class _StatCard extends StatelessWidget {
-  const _StatCard({required this.value, required this.label, required this.icon});
+  const _StatCard({
+    required this.value,
+    required this.label,
+    required this.icon,
+  });
   final String value;
   final String label;
   final IconData icon;
@@ -612,7 +749,13 @@ class _StatCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: .06), blurRadius: 12, offset: const Offset(0, 6))],
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: .06),
+            blurRadius: 12,
+            offset: const Offset(0, 6),
+          ),
+        ],
       ),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
@@ -621,9 +764,20 @@ class _StatCard extends StatelessWidget {
           children: [
             Icon(icon, size: 28, color: const Color(0xFF2563EB)),
             const SizedBox(height: 10),
-            Text(value, style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w800, color: Color(0xFF111827))),
+            Text(
+              value,
+              style: const TextStyle(
+                fontSize: 28,
+                fontWeight: FontWeight.w800,
+                color: Color(0xFF111827),
+              ),
+            ),
             const SizedBox(height: 4),
-            Text(label, textAlign: TextAlign.center, style: const TextStyle(color: Color(0xFF6B7280))),
+            Text(
+              label,
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: Color(0xFF6B7280)),
+            ),
           ],
         ),
       ),
@@ -655,7 +809,13 @@ class _FeatureCard extends StatelessWidget {
         gradient: LinearGradient(colors: [bgStart, bgEnd]),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: Colors.white.withValues(alpha: .7)),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: .04), blurRadius: 8, offset: const Offset(0, 6))],
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: .04),
+            blurRadius: 8,
+            offset: const Offset(0, 6),
+          ),
+        ],
       ),
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -667,14 +827,25 @@ class _FeatureCard extends StatelessWidget {
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(10),
-                boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: .06), blurRadius: 10)],
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: .06),
+                    blurRadius: 10,
+                  ),
+                ],
               ),
               child: Icon(icon, color: iconColor),
             ),
             const SizedBox(height: 10),
-            Text(title,
-                textAlign: TextAlign.center,
-                style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16, color: Color(0xFF111827))),
+            Text(
+              title,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontWeight: FontWeight.w700,
+                fontSize: 16,
+                color: Color(0xFF111827),
+              ),
+            ),
             const SizedBox(height: 6),
             Text(
               description,
@@ -689,7 +860,11 @@ class _FeatureCard extends StatelessWidget {
 }
 
 class _StepCard extends StatelessWidget {
-  const _StepCard({required this.step, required this.title, required this.description});
+  const _StepCard({
+    required this.step,
+    required this.title,
+    required this.description,
+  });
   final String step;
   final String title;
   final String description;
@@ -704,14 +879,34 @@ class _StepCard extends StatelessWidget {
           alignment: Alignment.center,
           decoration: const BoxDecoration(
             shape: BoxShape.circle,
-            gradient: LinearGradient(colors: [Color(0xFF2563EB), Color(0xFF4F46E5)]),
+            gradient: LinearGradient(
+              colors: [Color(0xFF2563EB), Color(0xFF4F46E5)],
+            ),
           ),
-          child: Text(step, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 20)),
+          child: Text(
+            step,
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w800,
+              fontSize: 20,
+            ),
+          ),
         ),
         const SizedBox(height: 10),
-        Text(title, textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.w700, color: Color(0xFF111827))),
+        Text(
+          title,
+          textAlign: TextAlign.center,
+          style: const TextStyle(
+            fontWeight: FontWeight.w700,
+            color: Color(0xFF111827),
+          ),
+        ),
         const SizedBox(height: 6),
-        Text(description, textAlign: TextAlign.center, style: const TextStyle(color: Color(0xFF4B5563))),
+        Text(
+          description,
+          textAlign: TextAlign.center,
+          style: const TextStyle(color: Color(0xFF4B5563)),
+        ),
       ],
     );
   }
@@ -735,12 +930,22 @@ class _FooterLink extends StatelessWidget {
         Text(label, style: const TextStyle(color: Color(0xFF4B5563))),
       ],
     );
-    return InkWell(onTap: onTap, child: Padding(padding: const EdgeInsets.symmetric(vertical: 6), child: w));
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 6),
+        child: w,
+      ),
+    );
   }
 }
 
 class _SocialIcon extends StatelessWidget {
-  const _SocialIcon({required this.icon, required this.onTap, required this.tooltip});
+  const _SocialIcon({
+    required this.icon,
+    required this.onTap,
+    required this.tooltip,
+  });
   final IconData icon;
   final VoidCallback onTap;
   final String tooltip;
