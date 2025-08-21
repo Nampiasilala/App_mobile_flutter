@@ -155,8 +155,7 @@ class _ParametersPageState extends ConsumerState<ParametersPage> {
     _controllers[_ParamKey.iSec] = TextEditingController(text: _fmt(p.iSec, _ParamKey.iSec));
   }
 
-
-    void _showSnack(String msg, {bool success = false}) {
+  void _showSnack(String msg, {bool success = false}) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -165,10 +164,6 @@ class _ParametersPageState extends ConsumerState<ParametersPage> {
       ),
     );
   }
-
-
-
-
 
   Future<void> _save() async {
     if (_params == null) return;
@@ -315,54 +310,44 @@ class _ParametersPageState extends ConsumerState<ParametersPage> {
       ),
     ];
 
-    return LayoutBuilder(builder: (context, c) {
-      final w = c.maxWidth;
-      final cols = w >= 1200 ? 3 : w >= 820 ? 2 : 1;
-
-      return ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: cols,
-              mainAxisSpacing: 12,
-              crossAxisSpacing: 12,
-              childAspectRatio: 1.28,
-            ),
-            itemCount: cards.length,
-            itemBuilder: (_, i) => _ParamCard(
-              data: cards[i],
-              isEditing: _editing == cards[i].keyName,
-              onEdit: () => setState(() => _editing = cards[i].keyName),
-              onCancel: _cancelEdit,
-            ),
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        // Liste simple des cartes
+        ...cards.map((card) => Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: _ParamCard(
+            data: card,
+            isEditing: _editing == card.keyName,
+            onEdit: () => setState(() => _editing = card.keyName),
+            onCancel: _cancelEdit,
           ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              FilledButton.icon(
-                onPressed: (_editing == null || _saving) ? null : _save,
-                icon: _saving
-                    ? const SizedBox.square(
-                        dimension: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.save_outlined),
-                label: Text(_saving ? 'Enregistrement…' : 'Enregistrer les modifications'),
-              ),
-              const SizedBox(width: 8),
-              OutlinedButton.icon(
-                onPressed: _editing == null ? null : _cancelEdit,
-                icon: const Icon(Icons.close),
-                label: const Text('Annuler'),
-              ),
-            ],
-          ),
-        ],
-      );
-    });
+        )),
+        const SizedBox(height: 8),
+        // Boutons d'action
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            FilledButton.icon(
+              onPressed: (_editing == null || _saving) ? null : _save,
+              icon: _saving
+                  ? const SizedBox.square(
+                      dimension: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                    )
+                  : const Icon(Icons.save_outlined),
+              label: Text(_saving ? 'Enregistrement…' : 'Enregistrer'),
+            ),
+            const SizedBox(height: 8),
+            OutlinedButton.icon(
+              onPressed: _editing == null ? null : _cancelEdit,
+              icon: const Icon(Icons.close),
+              label: const Text('Annuler'),
+            ),
+          ],
+        ),
+      ],
+    );
   }
 }
 
@@ -413,52 +398,75 @@ class _ParamCard extends StatelessWidget {
 
     return Card(
       elevation: 0,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Padding(
-        padding: const EdgeInsets.all(14),
+        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(data.title,
-                style: const TextStyle(fontWeight: FontWeight.w700, color: Color(0xFF0F172A))),
-            const SizedBox(height: 8),
-            if (isEditing)
-              TextField(
-                controller: data.controller,
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9\.,]'))],
-                decoration: InputDecoration(
-                  isDense: true,
-                  border: const OutlineInputBorder(),
-                  hintText: data.hint,
-                ),
-              )
-            else
-              Text(
-                displayValue(data.controller.text),
-                style: const TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.w800,
-                  color: Color(0xFF111827),
-                ),
+            // Titre
+            Text(
+              data.title,
+              style: const TextStyle(
+                fontWeight: FontWeight.w700, 
+                color: Color(0xFF0F172A),
+                fontSize: 14,
               ),
-            const SizedBox(height: 6),
-            Text('Plage conseillée : ${data.range}',
-                style: const TextStyle(fontSize: 12, color: Color(0xFF64748B))),
-            const Spacer(),
-            Align(
-              alignment: Alignment.bottomRight,
-              child: isEditing
-                  ? OutlinedButton.icon(
-                      onPressed: onCancel,
-                      icon: const Icon(Icons.close),
-                      label: const Text('Annuler'),
-                    )
-                  : TextButton.icon(
-                      onPressed: onEdit,
-                      icon: const Icon(Icons.edit_outlined),
-                      label: const Text('Modifier'),
-                    ),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: 12),
+            
+            // Valeur ou champ d'édition
+            Row(
+              children: [
+                Expanded(
+                  child: isEditing
+                      ? TextField(
+                          controller: data.controller,
+                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                          inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9\.,]'))],
+                          decoration: InputDecoration(
+                            isDense: true,
+                            border: const OutlineInputBorder(),
+                            hintText: data.hint,
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                          ),
+                        )
+                      : Text(
+                          displayValue(data.controller.text),
+                          style: const TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.w800,
+                            color: Color(0xFF111827),
+                          ),
+                        ),
+                ),
+                const SizedBox(width: 12),
+                // Bouton d'action
+                isEditing
+                    ? IconButton(
+                        onPressed: onCancel,
+                        icon: const Icon(Icons.close, color: Colors.red),
+                        tooltip: 'Annuler',
+                      )
+                    : IconButton(
+                        onPressed: onEdit,
+                        icon: const Icon(Icons.edit_outlined, color: Color(0xFF3B82F6)),
+                        tooltip: 'Modifier',
+                      ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            
+            // Info plage conseillée
+            Text(
+              'Plage : ${data.range}',
+              style: const TextStyle(
+                fontSize: 12, 
+                color: Color(0xFF64748B),
+              ),
+              overflow: TextOverflow.ellipsis,
             ),
           ],
         ),
@@ -473,15 +481,18 @@ class _CenteredLoader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Center(
-      child: Column(mainAxisSize: MainAxisSize.min, children: [
-        const SizedBox(
-          width: 42,
-          height: 42,
-          child: CircularProgressIndicator(),
-        ),
-        const SizedBox(height: 10),
-        Text(label),
-      ]),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const SizedBox(
+            width: 42,
+            height: 42,
+            child: CircularProgressIndicator(),
+          ),
+          const SizedBox(height: 10),
+          Text(label),
+        ],
+      ),
     );
   }
 }
@@ -494,26 +505,39 @@ class _ErrorCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Center(
-      child: Card(
-        elevation: 0,
-        color: const Color(0xFFFFE4E6),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        child: Padding(
-          padding: const EdgeInsets.all(18),
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
-            const Icon(Icons.error_outline, size: 40, color: Color(0xFFB91C1C)),
-            const SizedBox(height: 8),
-            const Text('Erreur de chargement',
-                style: TextStyle(fontWeight: FontWeight.w800, color: Color(0xFF7F1D1D))),
-            const SizedBox(height: 6),
-            Text(message, textAlign: TextAlign.center),
-            const SizedBox(height: 10),
-            FilledButton.icon(
-              onPressed: onRetry,
-              icon: const Icon(Icons.refresh),
-              label: const Text('Réessayer'),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Card(
+          elevation: 0,
+          color: const Color(0xFFFFE4E6),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          child: Padding(
+            padding: const EdgeInsets.all(18),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.error_outline, size: 40, color: Color(0xFFB91C1C)),
+                const SizedBox(height: 8),
+                const Text(
+                  'Erreur de chargement',
+                  style: TextStyle(fontWeight: FontWeight.w800, color: Color(0xFF7F1D1D)),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  message,
+                  textAlign: TextAlign.center,
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 3,
+                ),
+                const SizedBox(height: 10),
+                FilledButton.icon(
+                  onPressed: onRetry,
+                  icon: const Icon(Icons.refresh),
+                  label: const Text('Réessayer'),
+                ),
+              ],
             ),
-          ]),
+          ),
         ),
       ),
     );

@@ -17,7 +17,7 @@ class _CalculatePageState extends ConsumerState<CalculatePage> {
   final _form = GlobalKey<FormState>();
   final _scrollController = ScrollController();
   
-  // Controllers - vides par défaut
+  // Controllers
   final _ejour = TextEditingController();
   final _pmax = TextEditingController();
   final _nauto = TextEditingController();
@@ -43,6 +43,8 @@ class _CalculatePageState extends ConsumerState<CalculatePage> {
   @override
   void initState() {
     super.initState();
+    // ---- CHANGEMENT 1 : Préremplir l'autonomie à 1 ----
+    _nauto.text = '1';
     _loc.addListener(_onLocationChanged);
   }
 
@@ -119,6 +121,7 @@ class _CalculatePageState extends ConsumerState<CalculatePage> {
       final avgIrradiation = await nasa.avgIrradiation(lat, lon);
       
       if (mounted) {
+        // Remplit le champ (désactivé) avec la valeur récupérée
         _hSolaire.text = avgIrradiation.toStringAsFixed(2);
         _showSnackBar(
           'Irradiation mise à jour: ${avgIrradiation.toStringAsFixed(2)} kWh/m²/j',
@@ -371,7 +374,6 @@ class _CalculatePageState extends ConsumerState<CalculatePage> {
           ),
           const SizedBox(height: 16),
           
-          // Grille d'équipements
           if (equipments.panneau != null)
             _buildEquipmentCard(
               'Panneau solaire',
@@ -421,7 +423,7 @@ class _CalculatePageState extends ConsumerState<CalculatePage> {
               Icons.cable,
               Colors.grey,
               equipments.cable!,
-              null, // Quantité selon installation
+              null,
             ),
           ],
         ],
@@ -472,27 +474,22 @@ class _CalculatePageState extends ConsumerState<CalculatePage> {
             _buildEquipmentRow('Modèle', equipment.modele),
             const SizedBox(height: 4),
           ],
-          
           if (equipment.reference != null) ...[
             _buildEquipmentRow('Référence', equipment.reference),
             const SizedBox(height: 4),
           ],
-          
           if (equipment.puissance_W != null) ...[
             _buildEquipmentRow('Puissance', '${equipment.puissance_W} W'),
             const SizedBox(height: 4),
           ],
-          
           if (equipment.capacite_Ah != null) ...[
             _buildEquipmentRow('Capacité', '${equipment.capacite_Ah} Ah'),
             const SizedBox(height: 4),
           ],
-          
           if (equipment.tension_nominale_V != null) ...[
             _buildEquipmentRow('Tension', '${equipment.tension_nominale_V} V'),
             const SizedBox(height: 4),
           ],
-          
           if (equipment.prix_unitaire != null) ...[
             const SizedBox(height: 8),
             Container(
@@ -611,7 +608,6 @@ class _CalculatePageState extends ConsumerState<CalculatePage> {
           controller: _scrollController,
           padding: const EdgeInsets.all(16),
           children: [
-            // Erreurs de validation
             if (_errors.isNotEmpty) ...[
               Container(
                 padding: const EdgeInsets.all(16),
@@ -787,22 +783,15 @@ class _CalculatePageState extends ConsumerState<CalculatePage> {
                 
                 const SizedBox(height: 16),
                 
-                // Irradiation
-                ValueListenableBuilder<Map<String, String>?>(
-                  valueListenable: _selectedLocation,
-                  builder: (_, selectedLoc, __) => TextFormField(
-                    controller: _hSolaire,
-                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                    enabled: selectedLoc == null,
-                    decoration: inputDecoration.copyWith(
-                      labelText: 'Irradiation (kWh/m²/j)',
-                      helperText: selectedLoc != null 
-                          ? 'Calculée automatiquement' 
-                          : 'Énergie solaire moyenne reçue par m² et par jour',
-                      helperStyle: TextStyle(
-                        color: selectedLoc != null ? Colors.green[600] : null,
-                      ),
-                    ),
+                // ---- CHANGEMENT 2 : Irradiation non modifiable ----
+                // Champ toujours désactivé; rempli automatiquement via _fetchIrradiation
+                TextFormField(
+                  controller: _hSolaire,
+                  enabled: false,
+                  decoration: inputDecoration.copyWith(
+                    labelText: 'Irradiation (kWh/m²/j)',
+                    helperText: 'Calculée automatiquement à partir de la localisation',
+                    helperStyle: TextStyle(color: Colors.green[600]),
                   ),
                 ),
               ],
@@ -845,7 +834,6 @@ class _CalculatePageState extends ConsumerState<CalculatePage> {
               const SizedBox(height: 24),
               _buildResultsSection(),
               
-              // Équipements recommandés
               if (_fullResult?.equipements_recommandes != null) ...[
                 const SizedBox(height: 20),
                 _buildEquipmentSection(),

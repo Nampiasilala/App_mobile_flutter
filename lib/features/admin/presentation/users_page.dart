@@ -82,8 +82,8 @@ class _UsersPageState extends ConsumerState<UsersPage> {
     final ok = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text('Supprimer l’utilisateur'),
-        content: Text('Voulez-vous vraiment supprimer “${u.username}” ?'),
+        title: const Text('Supprimer l\'utilisateur'),
+        content: Text('Voulez-vous vraiment supprimer "${u.username}" ?'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Annuler')),
           FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('Supprimer')),
@@ -121,7 +121,7 @@ class _UsersPageState extends ConsumerState<UsersPage> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(msg), backgroundColor: success ? Colors.green.shade700 : null),
     );
-    }
+  }
 
   String _fmtDate(DateTime d) =>
       '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
@@ -144,7 +144,7 @@ class _UsersPageState extends ConsumerState<UsersPage> {
 
   @override
   Widget build(BuildContext context) {
-    // garde d’accès : admin requis
+    // garde d'accès : admin requis
     final isAdmin = ref.watch(authStateProvider).isAdmin;
     if (!isAdmin) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -158,25 +158,22 @@ class _UsersPageState extends ConsumerState<UsersPage> {
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            // Toolbar
+            // Barre de recherche
+            TextField(
+              controller: _searchCtrl,
+              decoration: const InputDecoration(
+                hintText: 'Rechercher…',
+                isDense: true,
+                prefixIcon: Icon(Icons.search),
+                border: OutlineInputBorder(),
+              ),
+              onChanged: (v) => setState(() => _search = v),
+            ),
+            const SizedBox(height: 8),
+            
+            // Filtre et refresh
             Row(
               children: [
-                // Recherche
-                Expanded(
-                  flex: 2,
-                  child: TextField(
-                    controller: _searchCtrl,
-                    decoration: InputDecoration(
-                      hintText: 'Rechercher par nom, email ou rôle…',
-                      isDense: true,
-                      prefixIcon: const Icon(Icons.search),
-                      border: const OutlineInputBorder(),
-                    ),
-                    onChanged: (v) => setState(() => _search = v),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                // Filtre rôle
                 Expanded(
                   child: DropdownButtonFormField<RoleFilter>(
                     value: _filter,
@@ -185,33 +182,44 @@ class _UsersPageState extends ConsumerState<UsersPage> {
                       isDense: true,
                       border: OutlineInputBorder(),
                       prefixIcon: Icon(Icons.filter_list),
+                      contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
                     ),
                     items: RoleFilter.values
                         .map((r) => DropdownMenuItem(
                               value: r,
-                              child: Text(r.label),
+                              child: Text(
+                                r.label,
+                                overflow: TextOverflow.ellipsis,
+                              ),
                             ))
                         .toList(),
                     onChanged: (v) => setState(() => _filter = v ?? RoleFilter.tous),
                   ),
                 ),
-                const SizedBox(width: 12),
-                IconButton(
-                  tooltip: 'Rafraîchir',
-                  onPressed: _loading ? null : _load,
-                  icon: const Icon(Icons.refresh),
+                const SizedBox(width: 8),
+                Container(
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Theme.of(context).dividerColor),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: IconButton(
+                    tooltip: 'Rafraîchir',
+                    constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+                    onPressed: _loading ? null : _load,
+                    icon: const Icon(Icons.refresh, size: 20),
+                  ),
                 ),
               ],
             ),
             const SizedBox(height: 16),
 
-            // Table / liste
+            // Liste des utilisateurs
             Expanded(
               child: _loading
                   ? const _CenteredLoader(label: 'Chargement des utilisateurs…')
                   : _filtered.isEmpty
                       ? const _EmptyState()
-                      : _UsersTable(
+                      : _UsersList(
                           users: _filtered,
                           deletingId: _deletingId,
                           roleBg: _roleBg,
@@ -229,8 +237,8 @@ class _UsersPageState extends ConsumerState<UsersPage> {
 
 /* ------------------------------- Widgets UI ------------------------------- */
 
-class _UsersTable extends StatelessWidget {
-  const _UsersTable({
+class _UsersList extends StatelessWidget {
+  const _UsersList({
     required this.users,
     required this.deletingId,
     required this.roleBg,
@@ -248,44 +256,66 @@ class _UsersTable extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isWide = MediaQuery.of(context).size.width >= 680;
-
-    if (!isWide) {
-      // Cartes (mobile)
-      return ListView.separated(
-        itemCount: users.length,
-        separatorBuilder: (_, __) => const SizedBox(height: 8),
-        itemBuilder: (_, i) {
-          final u = users[i];
-          final isDel = deletingId == u.id;
-          return Card(
-            margin: EdgeInsets.zero,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            child: Padding(
-              padding: const EdgeInsets.all(12),
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Row(
-                  children: [
-                    const Icon(Icons.mail_outline, size: 18, color: Color(0xFF64748B)),
-                    const SizedBox(width: 6),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(u.username, style: const TextStyle(fontWeight: FontWeight.w700)),
-                          Text(u.email, style: const TextStyle(color: Color(0xFF64748B), fontSize: 12)),
-                        ],
+    return ListView.separated(
+      itemCount: users.length,
+      separatorBuilder: (_, __) => const SizedBox(height: 8),
+      itemBuilder: (_, i) {
+        final u = users[i];
+        final isDel = deletingId == u.id;
+        return Card(
+          margin: EdgeInsets.zero,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                IntrinsicHeight(
+                  child: Row(
+                    children: [
+                      const Icon(Icons.mail_outline, size: 18, color: Color(0xFF64748B)),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              u.username,
+                              style: const TextStyle(fontWeight: FontWeight.w700),
+                              overflow: TextOverflow.ellipsis,
+                              maxLines: 1,
+                            ),
+                            Text(
+                              u.email,
+                              style: const TextStyle(color: Color(0xFF64748B), fontSize: 12),
+                              overflow: TextOverflow.ellipsis,
+                              maxLines: 1,
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                    IconButton(
-                      tooltip: 'Supprimer',
-                      onPressed: isDel ? null : () => onDelete(u),
-                      icon: isDel
-                          ? const SizedBox.square(
-                              dimension: 18, child: CircularProgressIndicator(strokeWidth: 2))
-                          : const Icon(Icons.delete_outline, color: Colors.red),
-                    ),
-                  ],
+                      SizedBox(
+                        width: 48,
+                        height: 48,
+                        child: Material(
+                          type: MaterialType.transparency,
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(24),
+                            onTap: isDel ? null : () => onDelete(u),
+                            child: Center(
+                              child: isDel
+                                  ? const SizedBox.square(
+                                      dimension: 18,
+                                      child: CircularProgressIndicator(strokeWidth: 2),
+                                    )
+                                  : const Icon(Icons.delete_outline, color: Colors.red, size: 20),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
                 const SizedBox(height: 8),
                 Wrap(
@@ -293,87 +323,28 @@ class _UsersTable extends StatelessWidget {
                   runSpacing: 8,
                   children: [
                     Chip(
-                      label: Text(u.role,
-                          style: TextStyle(color: roleFg(u.role), fontWeight: FontWeight.w600)),
+                      label: Text(
+                        u.role,
+                        style: TextStyle(color: roleFg(u.role), fontWeight: FontWeight.w600),
+                      ),
                       backgroundColor: roleBg(u.role),
                       side: BorderSide(color: roleBg(u.role)),
+                      visualDensity: VisualDensity.compact,
+                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                     ),
                     Chip(
                       label: Text('Inscription : ${fmtDate(u.joinDate)}'),
                       avatar: const Icon(Icons.calendar_today, size: 16),
+                      visualDensity: VisualDensity.compact,
+                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                     ),
                   ],
                 ),
-              ]),
+              ],
             ),
-          );
-        },
-      );
-    }
-
-    // Table (desktop)
-    return Material(
-      elevation: 0,
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: const Color(0xFFE5E7EB)),
-        ),
-        child: DataTable(
-          columns: const [
-            DataColumn(label: Text('Utilisateur')),
-            DataColumn(label: Text('Rôle')),
-            DataColumn(label: Text('Inscription')),
-            DataColumn(label: Text('Actions'), numeric: true),
-          ],
-          rows: users.map((u) {
-            final isDel = deletingId == u.id;
-            return DataRow(cells: [
-              DataCell(Row(
-                children: [
-                  const Icon(Icons.mail_outline, size: 18, color: Color(0xFF64748B)),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(u.username, style: const TextStyle(fontWeight: FontWeight.w700)),
-                        Text(u.email, style: const TextStyle(color: Color(0xFF64748B), fontSize: 12)),
-                      ],
-                    ),
-                  ),
-                ],
-              )),
-              DataCell(Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                decoration: BoxDecoration(
-                  color: roleBg(u.role),
-                  borderRadius: BorderRadius.circular(999),
-                  border: Border.all(color: roleBg(u.role)),
-                ),
-                child: Text(u.role,
-                    style: TextStyle(color: roleFg(u.role), fontWeight: FontWeight.w700, fontSize: 12)),
-              )),
-              DataCell(Text(u.joinDate.toLocal().toString().split(' ').first)),
-              DataCell(Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  IconButton(
-                    tooltip: 'Supprimer',
-                    onPressed: isDel ? null : () => onDelete(u),
-                    icon: isDel
-                        ? const SizedBox.square(
-                            dimension: 18, child: CircularProgressIndicator(strokeWidth: 2))
-                        : const Icon(Icons.delete_outline, color: Colors.red),
-                  ),
-                ],
-              )),
-            ]);
-          }).toList(),
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 }
@@ -384,11 +355,14 @@ class _CenteredLoader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Center(
-      child: Column(mainAxisSize: MainAxisSize.min, children: [
-        const SizedBox(width: 42, height: 42, child: CircularProgressIndicator()),
-        const SizedBox(height: 10),
-        Text(label),
-      ]),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const SizedBox(width: 42, height: 42, child: CircularProgressIndicator()),
+          const SizedBox(height: 10),
+          Text(label),
+        ],
+      ),
     );
   }
 }
@@ -397,12 +371,15 @@ class _EmptyState extends StatelessWidget {
   const _EmptyState();
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Column(mainAxisSize: MainAxisSize.min, children: const [
-        Icon(Icons.group_outlined, size: 48, color: Color(0xFFCBD5E1)),
-        SizedBox(height: 8),
-        Text('Aucun utilisateur ne correspond à votre recherche.'),
-      ]),
+    return const Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.group_outlined, size: 48, color: Color(0xFFCBD5E1)),
+          SizedBox(height: 8),
+          Text('Aucun utilisateur ne correspond à votre recherche.'),
+        ],
+      ),
     );
   }
 }
