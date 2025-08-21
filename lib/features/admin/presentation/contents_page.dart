@@ -73,7 +73,7 @@ const _predefs = <_PredefField>[
     description: 'Énergie consommée par jour',
     unit: 'Wh',
     icon: Icons.bolt_outlined,
-    color: Color(0xFFF59E0B), // amber/orange
+    color: Color(0xFFF59E0B),
     category: 'Consommation',
     placeholder: 'Ex: 1520',
     defaultHelp:
@@ -85,7 +85,7 @@ const _predefs = <_PredefField>[
     description: 'Pic de puissance simultané',
     unit: 'W',
     icon: Icons.flash_on_outlined,
-    color: Color(0xFFFB923C), // orange
+    color: Color(0xFFFB923C),
     category: 'Consommation',
     placeholder: 'Ex: 400',
     defaultHelp:
@@ -97,7 +97,7 @@ const _predefs = <_PredefField>[
     description: 'Jours sans soleil couverts',
     unit: 'jours',
     icon: Icons.settings_outlined,
-    color: Color(0xFFA78BFA), // purple
+    color: Color(0xFFA78BFA),
     category: 'Configuration',
     placeholder: 'Ex: 3',
     defaultHelp:
@@ -109,7 +109,7 @@ const _predefs = <_PredefField>[
     description: 'Voltage du système',
     unit: 'V',
     icon: Icons.tungsten_outlined,
-    color: Color(0xFF60A5FA), // blue
+    color: Color(0xFF60A5FA),
     category: 'Configuration',
     placeholder: '12V, 24V ou 48V',
     defaultHelp:
@@ -121,7 +121,7 @@ const _predefs = <_PredefField>[
     description: 'Position géographique',
     unit: '',
     icon: Icons.public_outlined,
-    color: Color(0xFF34D399), // green
+    color: Color(0xFF34D399),
     category: 'Environnement',
     placeholder: 'Ex: Antananarivo',
     defaultHelp:
@@ -133,7 +133,7 @@ const _predefs = <_PredefField>[
     description: 'Énergie solaire disponible',
     unit: 'kWh/m²/j',
     icon: Icons.wb_sunny_outlined,
-    color: Color(0xFFFBBF24), // amber
+    color: Color(0xFFFBBF24),
     category: 'Environnement',
     placeholder: 'Ex: 4.5',
     defaultHelp:
@@ -304,7 +304,7 @@ class _ContentsPageState extends ConsumerState<ContentsPage> {
       body: Stack(
         children: [
           ListView(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            padding: const EdgeInsets.all(16),
             children: [
               const _TitleRow(),
               const SizedBox(height: 12),
@@ -318,48 +318,46 @@ class _ContentsPageState extends ConsumerState<ContentsPage> {
                   ),
                 ),
 
+              // Liste simple des cartes par catégorie
               for (final entry in byCat.entries) ...[
                 _CategoryHeader(entry.key),
                 const SizedBox(height: 8),
-                _Grid(
-                  children: [
-                    for (final f in entry.value)
-                      _FieldCard(
-                        field: f,
-                        configured: st.items.any((c) => c.key == f.key),
-                        onEdit: () {
-                          setState(() {
-                            _editing = f;
-                            _editingExisting = st.items.firstWhere(
-                              (c) => c.key == f.key,
-                              orElse: () => HelpContent(
-                                key: f.key,
-                                title: f.title,
-                                bodyHtml: _textToHtml(f.defaultHelp),
-                                isActive: true,
-                              ),
-                            );
-                          });
-                          _openEditSheet(context, ctrl);
-                        },
-                        onPreview: st.items.any((c) => c.key == f.key)
-                            ? () {
-                                final c =
-                                    st.items.firstWhere((e) => e.key == f.key);
-                                _openPreviewDialog(context, c, f);
-                              }
-                            : null,
-                      ),
-                  ],
-                ),
-                const SizedBox(height: 16),
+                for (final f in entry.value) ...[
+                  _FieldCard(
+                    field: f,
+                    configured: st.items.any((c) => c.key == f.key),
+                    onEdit: () {
+                      setState(() {
+                        _editing = f;
+                        _editingExisting = st.items.firstWhere(
+                          (c) => c.key == f.key,
+                          orElse: () => HelpContent(
+                            key: f.key,
+                            title: f.title,
+                            bodyHtml: _textToHtml(f.defaultHelp),
+                            isActive: true,
+                          ),
+                        );
+                      });
+                      _openEditSheet(context, ctrl);
+                    },
+                    onPreview: st.items.any((c) => c.key == f.key)
+                        ? () {
+                            final c = st.items.firstWhere((e) => e.key == f.key);
+                            _openPreviewDialog(context, c, f);
+                          }
+                        : null,
+                  ),
+                  const SizedBox(height: 12),
+                ],
+                const SizedBox(height: 8),
               ],
             ],
           ),
 
           if (st.loading)
             const Positioned.fill(
-              child: _FullScreenLoader(label: 'Chargement des contenus…'),
+              child: _FullScreenLoader(label: 'Chargement…'),
             ),
           if (st.saving)
             const Positioned.fill(
@@ -370,14 +368,12 @@ class _ContentsPageState extends ConsumerState<ContentsPage> {
     );
   }
 
-  Future<void> _openEditSheet(
-      BuildContext context, _ContentsController ctrl) async {
+  Future<void> _openEditSheet(BuildContext context, _ContentsController ctrl) async {
     if (_editing == null || _editingExisting == null) return;
     final field = _editing!;
     final ex = _editingExisting!;
 
-    final titleCtrl =
-        TextEditingController(text: ex.title.isNotEmpty ? ex.title : field.title);
+    final titleCtrl = TextEditingController(text: ex.title.isNotEmpty ? ex.title : field.title);
     final bodyCtrl = TextEditingController(
       text: ex.bodyHtml.isNotEmpty ? _htmlToText(ex.bodyHtml) : field.defaultHelp,
     );
@@ -400,58 +396,76 @@ class _ContentsPageState extends ConsumerState<ContentsPage> {
                 bottom: 16 + MediaQuery.of(ctx).viewInsets.bottom,
                 top: 8,
               ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    title: Text(
-                      '${ex.id == null ? 'Configurer' : 'Modifier'} : ${field.title}',
-                      style: const TextStyle(fontWeight: FontWeight.w700),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                '${ex.id == null ? 'Configurer' : 'Modifier'}',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 16,
+                                ),
+                              ),
+                              Text(
+                                '${field.title} (${field.key})',
+                                style: const TextStyle(
+                                  color: Color(0xFF64748B),
+                                  fontSize: 14,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
+                          ),
+                        ),
+                        IconButton(
+                          onPressed: () => Navigator.of(ctx).pop(),
+                          icon: const Icon(Icons.close),
+                        ),
+                      ],
                     ),
-                    subtitle: Text('Clé : ${field.key}'),
-                    trailing: IconButton(
-                      onPressed: () => Navigator.of(ctx).pop(),
-                      icon: const Icon(Icons.close),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  TextField(
-                    controller: titleCtrl,
-                    decoration: const InputDecoration(
-                      labelText: 'Titre affiché',
-                      border: OutlineInputBorder(),
-                      isDense: true,
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  TextField(
-                    controller: bodyCtrl,
-                    minLines: 8,
-                    maxLines: 14,
-                    decoration: const InputDecoration(
-                      labelText: 'Explication (texte simple)',
-                      helperText:
-                          'Les sauts de ligne seront convertis automatiquement en HTML.',
-                      border: OutlineInputBorder(),
-                      alignLabelWithHint: true,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Switch(
-                        value: isActive,
-                        onChanged: (v) => setModalState(() => isActive = v),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: titleCtrl,
+                      decoration: const InputDecoration(
+                        labelText: 'Titre affiché',
+                        border: OutlineInputBorder(),
+                        isDense: true,
                       ),
-                      const SizedBox(width: 8),
-                      const Text('Contenu actif (visible)'),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  SizedBox(
-                    width: double.infinity,
-                    child: FilledButton.icon(
+                    ),
+                    const SizedBox(height: 10),
+                    TextField(
+                      controller: bodyCtrl,
+                      minLines: 6,
+                      maxLines: 10,
+                      decoration: const InputDecoration(
+                        labelText: 'Explication',
+                        helperText: 'Les sauts de ligne seront convertis en HTML',
+                        helperMaxLines: 2,
+                        border: OutlineInputBorder(),
+                        alignLabelWithHint: true,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Switch(
+                          value: isActive,
+                          onChanged: (v) => setModalState(() => isActive = v),
+                        ),
+                        const SizedBox(width: 8),
+                        const Text('Contenu actif'),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    FilledButton.icon(
                       icon: const Icon(Icons.save),
                       label: const Text('Enregistrer'),
                       onPressed: () async {
@@ -459,8 +473,7 @@ class _ContentsPageState extends ConsumerState<ContentsPage> {
                         final bodyText = bodyCtrl.text.trim();
                         if (title.isEmpty || bodyText.isEmpty) {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                                content: Text('Titre et texte requis')),
+                            const SnackBar(content: Text('Titre et texte requis')),
                           );
                           return;
                         }
@@ -475,9 +488,7 @@ class _ContentsPageState extends ConsumerState<ContentsPage> {
                           Navigator.of(ctx).pop();
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
-                              content: Text(ex.id == null
-                                  ? 'Contenu créé'
-                                  : 'Contenu mis à jour'),
+                              content: Text(ex.id == null ? 'Contenu créé' : 'Contenu mis à jour'),
                             ),
                           );
                         } catch (e) {
@@ -488,9 +499,9 @@ class _ContentsPageState extends ConsumerState<ContentsPage> {
                         }
                       },
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                ],
+                    const SizedBox(height: 8),
+                  ],
+                ),
               ),
             );
           },
@@ -505,12 +516,12 @@ class _ContentsPageState extends ConsumerState<ContentsPage> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text(
-            'Aperçu : ${field.title}${field.unit.isNotEmpty ? ' (${field.unit})' : ''}'),
+          '${field.title}${field.unit.isNotEmpty ? ' (${field.unit})' : ''}',
+          overflow: TextOverflow.ellipsis,
+        ),
         content: SingleChildScrollView(
           child: SelectableText(
-            _htmlToText(c.bodyHtml).isEmpty
-                ? field.defaultHelp
-                : _htmlToText(c.bodyHtml),
+            _htmlToText(c.bodyHtml).isEmpty ? field.defaultHelp : _htmlToText(c.bodyHtml),
             style: const TextStyle(height: 1.35),
           ),
         ),
@@ -533,12 +544,15 @@ class _TitleRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Row(
-      children: const [
-        Icon(Icons.description_outlined, color: Color(0xFF2563EB)),
-        SizedBox(width: 8),
-        Text(
-          'Gestion des notices',
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+      children: [
+        const Icon(Icons.description_outlined, color: Color(0xFF2563EB), size: 20),
+        const SizedBox(width: 8),
+        const Expanded(
+          child: Text(
+            'Gestion des notices',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+            overflow: TextOverflow.ellipsis,
+          ),
         ),
       ],
     );
@@ -565,50 +579,15 @@ class _CategoryHeader extends StatelessWidget {
     }
     return Row(
       children: [
-        if (icon != null) Icon(icon, color: color),
+        if (icon != null) Icon(icon, color: color, size: 18),
         if (icon != null) const SizedBox(width: 8),
         Text(
           title,
           style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+          overflow: TextOverflow.ellipsis,
         ),
       ],
     );
-  }
-}
-
-class _Grid extends StatelessWidget {
-  const _Grid({required this.children});
-  final List<Widget> children;
-
-  @override
-  Widget build(BuildContext context) {
-    return LayoutBuilder(builder: (context, c) {
-      final w = c.maxWidth;
-      final cols = w >= 1100
-          ? 3
-          : w >= 820
-              ? 2
-              : 1;
-      if (cols == 1) {
-        return Column(
-          children: [
-            for (int i = 0; i < children.length; i++) ...[
-              children[i],
-              if (i != children.length - 1) const SizedBox(height: 12),
-            ],
-          ],
-        );
-      }
-      return GridView.count(
-        crossAxisCount: cols,
-        mainAxisSpacing: 12,
-        crossAxisSpacing: 12,
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        childAspectRatio: 1.6,
-        children: children,
-      );
-    });
   }
 }
 
@@ -630,44 +609,53 @@ class _FieldCard extends StatelessWidget {
     final borderColor = field.color.withOpacity(.35);
     final chipColor = configured ? const Color(0xFF16A34A) : const Color(0xFF6B7280);
 
-    return DecoratedBox(
+    return Container(
       decoration: BoxDecoration(
         color: Colors.white,
         border: Border.all(color: borderColor),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(.04),
             blurRadius: 10,
-            offset: const Offset(0, 8),
+            offset: const Offset(0, 4),
           ),
         ],
       ),
       child: Padding(
         padding: const EdgeInsets.all(14),
         child: Column(
-          mainAxisSize: MainAxisSize.min, // ✅ évite les hauteurs infinies
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // En-tête
             Row(
               children: [
                 Container(
-                  width: 38,
-                  height: 38,
+                  width: 36,
+                  height: 36,
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
                     color: field.color.withOpacity(.12),
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(8),
                   ),
-                  child: Icon(field.icon, color: field.color),
+                  child: Icon(field.icon, color: field.color, size: 20),
                 ),
                 const SizedBox(width: 10),
                 Expanded(
-                  child: Text(
-                    field.title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontWeight: FontWeight.w700),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        field.title,
+                        style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      Text(
+                        field.description,
+                        style: const TextStyle(color: Color(0xFF475569), fontSize: 12),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
                   ),
                 ),
                 Icon(
@@ -678,41 +666,43 @@ class _FieldCard extends StatelessWidget {
               ],
             ),
 
-            const SizedBox(height: 8),
+            const SizedBox(height: 10),
 
+            // Info clé et unité
             Text(
-              field.description,
-              maxLines: 2,
+              'Clé : ${field.key}${field.unit.isNotEmpty ? '  •  ${field.unit}' : ''}',
+              style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(color: Color(0xFF475569), height: 1.3),
             ),
 
-            const SizedBox(height: 12),
+            const SizedBox(height: 10),
 
+            // Boutons d'action
             Row(
               children: [
                 Expanded(
                   child: OutlinedButton.icon(
                     onPressed: onEdit,
-                    icon: const Icon(Icons.edit),
-                    label: Text(configured ? 'Modifier' : 'Configurer'),
+                    icon: Icon(Icons.edit, size: 16),
+                    label: Text(
+                      configured ? 'Modifier' : 'Configurer',
+                      style: TextStyle(fontSize: 13),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    ),
                   ),
                 ),
-                const SizedBox(width: 8),
-                if (onPreview != null)
-                  IconButton.filledTonal(
+                if (onPreview != null) ...[
+                  const SizedBox(width: 8),
+                  IconButton(
                     onPressed: onPreview,
                     tooltip: 'Aperçu',
-                    icon: const Icon(Icons.visibility),
+                    icon: const Icon(Icons.visibility, color: Color(0xFF3B82F6)),
+                    constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
                   ),
+                ],
               ],
-            ),
-
-            const SizedBox(height: 6),
-
-            Text(
-              'Clé : ${field.key}${field.unit.isNotEmpty ? '   •   ${field.unit}' : ''}',
-              style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
             ),
           ],
         ),
@@ -731,14 +721,34 @@ class _ErrorBanner extends StatelessWidget {
     return Material(
       color: const Color(0xFFFEF2F2),
       borderRadius: BorderRadius.circular(12),
-      child: ListTile(
-        leading: const Icon(Icons.error_outline, color: Color(0xFFDC2626)),
-        title: const Text('Échec du chargement'),
-        subtitle: Text(message),
-        trailing: TextButton.icon(
-          onPressed: onRetry,
-          icon: const Icon(Icons.refresh),
-          label: const Text('Réessayer'),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Row(
+          children: [
+            const Icon(Icons.error_outline, color: Color(0xFFDC2626), size: 20),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Échec du chargement',
+                    style: TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                  Text(
+                    message,
+                    style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 2,
+                  ),
+                ],
+              ),
+            ),
+            TextButton(
+              onPressed: onRetry,
+              child: const Text('Réessayer', style: TextStyle(fontSize: 13)),
+            ),
+          ],
         ),
       ),
     );
@@ -754,32 +764,30 @@ class _FullScreenLoader extends StatelessWidget {
     return ColoredBox(
       color: Colors.black.withOpacity(.08),
       child: Center(
-        child: DecoratedBox(
+        child: Container(
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(12),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withOpacity(.12),
                 blurRadius: 20,
-                offset: const Offset(0, 12),
+                offset: const Offset(0, 8),
               ),
             ],
           ),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const SizedBox(
-                  width: 22,
-                  height: 22,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                ),
-                const SizedBox(width: 12),
-                Text(label),
-              ],
-            ),
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+              const SizedBox(width: 12),
+              Text(label, style: const TextStyle(fontSize: 14)),
+            ],
           ),
         ),
       ),

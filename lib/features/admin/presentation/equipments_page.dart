@@ -223,6 +223,7 @@ class _AdminEquipmentsPageState extends ConsumerState<AdminEquipmentsPage> {
     }
   }
 
+  // ----------------- UI mobile-first sans débordements -----------------
   @override
   Widget build(BuildContext context) {
     final isAdmin = ref.watch(authStateProvider).isAdmin;
@@ -232,72 +233,153 @@ class _AdminEquipmentsPageState extends ConsumerState<AdminEquipmentsPage> {
       });
     }
 
-    return Scaffold(
-      appBar: buildSmartAppBar(context, 'Gestion des équipements'),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _openEdit(),
-        icon: const Icon(Icons.add),
-        label: const Text('Ajouter'),
-      ),
-      body: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : Column(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(12, 12, 12, 6),
-                  child: Row(
+    // Basculer le FAB en "mini" si la largeur est très petite
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isNarrow = constraints.maxWidth < 360;
+
+        return Scaffold(
+          appBar: buildSmartAppBar(context, 'Gestion des équipements'),
+          // Évite que le clavier pousse le FAB hors écran
+          resizeToAvoidBottomInset: true,
+
+          floatingActionButton: FloatingActionButton.extended(
+            onPressed: () => _openEdit(),
+            icon: const Icon(Icons.add),
+            label: isNarrow ? const SizedBox.shrink() : const Text('Ajouter'),
+            isExtended: !isNarrow,
+          ),
+
+          body: SafeArea(
+            child: _loading
+                ? const Center(child: CircularProgressIndicator())
+                : Column(
                     children: [
-                      Expanded(
-                        child: TextField(
-                          decoration: const InputDecoration(
-                            prefixIcon: Icon(Icons.search),
-                            hintText: 'Référence / Modèle / Catégorie…',
-                            border: OutlineInputBorder(),
-                            isDense: true,
-                          ),
-                          onChanged: (v) => setState(() => _search = v),
+                      // Barre de recherche + filtre
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(12, 12, 12, 6),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            Expanded(
+                              child: TextField(
+                                decoration: const InputDecoration(
+                                  prefixIcon: Icon(Icons.search),
+                                  hintText: 'Référence / Modèle / Catégorie…',
+                                  border: OutlineInputBorder(),
+                                  isDense: true,
+                                ),
+                                textInputAction: TextInputAction.search,
+                                onChanged: (v) => setState(() => _search = v),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+
+                            // Le Dropdown ne déborde plus et ellipsera le libellé
+                            ConstrainedBox(
+                              constraints: const BoxConstraints(minWidth: 120, maxWidth: 180),
+                              child: DropdownButtonHideUnderline(
+                                child: DropdownButton<String>(
+                                  isDense: true,
+                                  isExpanded: true,
+                                  value: _filter,
+                                  items: <String>[
+                                    'Tous',
+                                    ...EquipmentCategory.values.map((e) => e.name),
+                                  ].map((v) {
+                                    final label = v == 'Tous'
+                                        ? 'Tous'
+                                        : EquipmentCategoryX.fromString(v)!.label;
+                                    return DropdownMenuItem<String>(
+                                      value: v,
+                                      child: Text(
+                                        label,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    );
+                                  }).toList(),
+                                  // Évite l’overflow du "selected item" dans la zone fermée
+                                  selectedItemBuilder: (ctx) {
+                                    return <String>[
+                                      'Tous',
+                                      ...EquipmentCategory.values.map((e) => e.name),
+                                    ].map((v) {
+                                      final label = v == 'Tous'
+                                          ? 'Tous'
+                                          : EquipmentCategoryX.fromString(v)!.label;
+                                      return Align(
+                                        alignment: Alignment.centerLeft,
+                                        child: Text(
+                                          label,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      );
+                                    }).toList();
+                                  },
+                                  onChanged: (v) => setState(() => _filter = v ?? 'Tous'),
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                      const SizedBox(width: 8),
-                      DropdownButtonHideUnderline(
-                        child: DropdownButton<String>(
-                          value: _filter,
-                          items: <String>['Tous', ...EquipmentCategory.values.map((e) => e.name)]
-                              .map((v) {
-                            final label = v == 'Tous'
-                                ? 'Tous'
-                                : EquipmentCategoryX.fromString(v)!.label;
-                            return DropdownMenuItem<String>(
-                              value: v,
-                              child: Text(label),
-                            );
-                          }).toList(),
-                          onChanged: (v) => setState(() => _filter = v ?? 'Tous'),
-                        ),
+
+                      const SizedBox(height: 2),
+
+                      // Liste + Pull-to-refresh
+                      Expanded(
+                        child: _filtered.isEmpty
+                            ? const Center(child: Text('Aucun équipement à afficher'))
+                            : RefreshIndicator(
+                                onRefresh: _load,
+                                child: ListView.separated(
+                                  physics: const AlwaysScrollableScrollPhysics(),
+                                  itemCount: _filtered.length,
+                                  separatorBuilder: (_, __) => const Divider(height: 0),
+                                  itemBuilder: (_, i) {
+                                    final e = _filtered.elementAt(i);
+
+                                    // Compose un titre compact et non‑cassant
+                                    final titre = [
+                                      e.reference,
+                                      (e.modele ?? e.nomCommercial ?? '—'),
+                                    ].where((s) => (s).trim().isNotEmpty).join(' — ');
+
+                                    return ListTile(
+                                      onTap: () => _openEdit(equipment: e),
+
+                                      // Rend la liste plus “dense” pour mobile
+                                      dense: true,
+                                      visualDensity: const VisualDensity(vertical: -2),
+
+                                      // Évite les overflows
+                                      title: Text(
+                                        titre,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                      subtitle: Text(
+                                        '${e.categorie.label} • ${_fmtMGA(e.prixUnitaire)}',
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+
+                                      // Trailing compact + contrainte de largeur
+                                      trailing: const Icon(Icons.chevron_right, size: 20),
+                                      contentPadding:
+                                          const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                    );
+                                  },
+                                ),
+                              ),
                       ),
                     ],
                   ),
-                ),
-                const SizedBox(height: 6),
-                Expanded(
-                  child: _filtered.isEmpty
-                      ? const Center(child: Text('Aucun équipement à afficher'))
-                      : ListView.separated(
-                          itemCount: _filtered.length,
-                          separatorBuilder: (_, __) => const Divider(height: 0),
-                          itemBuilder: (_, i) {
-                            final e = _filtered.elementAt(i);
-                            return ListTile(
-                              onTap: () => _openEdit(equipment: e),
-                              title: Text('${e.reference} — ${e.modele ?? e.nomCommercial ?? '—'}'),
-                              subtitle: Text('${e.categorie.label} • ${_fmtMGA(e.prixUnitaire)}'),
-                              trailing: const Icon(Icons.chevron_right),
-                            );
-                          },
-                        ),
-                ),
-              ],
-            ),
+          ),
+        );
+      },
     );
   }
 }

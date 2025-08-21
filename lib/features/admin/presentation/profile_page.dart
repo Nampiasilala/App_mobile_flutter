@@ -89,7 +89,6 @@ class _AdminProfilePageState extends ConsumerState<AdminProfilePage> {
         username: _username.text.trim(),
         email: _email.text.trim(),
       );
-      // re-fetch pour être sûr
       final p = await _svc.fetchProfile(_profile!.id);
       setState(() {
         _profile = p;
@@ -130,7 +129,6 @@ class _AdminProfilePageState extends ConsumerState<AdminProfilePage> {
         _showOld = _showNew = _showConfirm = false;
       });
     } on DioException catch (e) {
-      // Afficher champs/erreurs détaillées si la réponse est un dict
       final msg = _svc.fieldedOrGeneric(e);
       _showSnack(msg);
     } catch (e) {
@@ -158,7 +156,6 @@ class _AdminProfilePageState extends ConsumerState<AdminProfilePage> {
     );
   }
 
-  // Helpers role/status (pour chips)
   String _roleFromFlags(_AdminProfile p) {
     if (p.isSuperuser) return 'admin';
     if (p.isStaff) return 'manager';
@@ -168,13 +165,13 @@ class _AdminProfilePageState extends ConsumerState<AdminProfilePage> {
   Color _roleBg(String role) {
     switch (role.toLowerCase()) {
       case 'admin':
-        return const Color(0xFFFFE4E6); // red-100
+        return const Color(0xFFFFE4E6);
       case 'manager':
-        return const Color(0xFFF3E8FF); // purple-100
+        return const Color(0xFFF3E8FF);
       case 'user':
-        return const Color(0xFFDBEAFE); // blue-100
+        return const Color(0xFFDBEAFE);
       default:
-        return const Color(0xFFF1F5F9); // slate-100
+        return const Color(0xFFF1F5F9);
     }
   }
 
@@ -204,10 +201,8 @@ class _AdminProfilePageState extends ConsumerState<AdminProfilePage> {
 
   @override
   Widget build(BuildContext context) {
-    // empêche l’accès si on n’est plus admin
     final isAdmin = ref.watch(authStateProvider).isAdmin;
     if (!isAdmin) {
-      // redirection douce
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) context.go('/admin-login');
       });
@@ -220,8 +215,7 @@ class _AdminProfilePageState extends ConsumerState<AdminProfilePage> {
           : (_profile == null
               ? _ErrorCard(
                   title: 'Erreur de chargement',
-                  message:
-                      'Impossible de charger le profil. Réessayez plus tard.',
+                  message: 'Impossible de charger le profil. Réessayez plus tard.',
                 )
               : _buildContent()),
     );
@@ -234,140 +228,137 @@ class _AdminProfilePageState extends ConsumerState<AdminProfilePage> {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        // Header
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Avatar placeholder
-            CircleAvatar(
-              radius: 30,
-              backgroundColor: Colors.blue.shade100,
-              child: const Icon(Icons.person, color: Colors.blue),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    p.username?.isNotEmpty == true ? p.username! : '(sans nom)',
-                    style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w800,
-                      color: Color(0xFF0F172A),
-                    ),
+        // Header avec avatar et infos
+        Card(
+          elevation: 0,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              children: [
+                CircleAvatar(
+                  radius: 40,
+                  backgroundColor: Colors.blue.shade100,
+                  child: const Icon(Icons.person, color: Colors.blue, size: 40),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  p.username?.isNotEmpty == true ? p.username! : '(sans nom)',
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w800,
+                    color: Color(0xFF0F172A),
                   ),
-                  const SizedBox(height: 6),
-                  Wrap(
-                    spacing: 8,
-                    crossAxisAlignment: WrapCrossAlignment.center,
-                    children: [
-                      Chip(
-                        label: Text(
-                          role,
-                          style: TextStyle(
-                            color: _roleFg(role),
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        avatar: Icon(Icons.shield_outlined,
-                            size: 18, color: _roleFg(role)),
-                        backgroundColor: _roleBg(role),
-                        side: BorderSide(color: _roleBg(role)),
-                      ),
-                      Text(
-                        '• ${p.status}',
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Chip(
+                      label: Text(
+                        role,
                         style: TextStyle(
-                          color: _statusColor(p.status),
+                          color: _roleFg(role),
                           fontWeight: FontWeight.w600,
+                          fontSize: 12,
                         ),
+                      ),
+                      avatar: Icon(Icons.shield_outlined, size: 16, color: _roleFg(role)),
+                      backgroundColor: _roleBg(role),
+                      side: BorderSide(color: _roleBg(role)),
+                      visualDensity: VisualDensity.compact,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      '• ${p.status}',
+                      style: TextStyle(
+                        color: _statusColor(p.status),
+                        fontWeight: FontWeight.w600,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                if (!_editing)
+                  FilledButton.icon(
+                    onPressed: () => setState(() => _editing = true),
+                    icon: const Icon(Icons.edit_outlined, size: 18),
+                    label: const Text('Modifier'),
+                  ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+
+        // Card infos (formulaire)
+        Card(
+          elevation: 0,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _buildIdentityForm(),
+                const SizedBox(height: 16),
+                _buildAccountInfo(p),
+                if (_editing) ...[
+                  const SizedBox(height: 16),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      FilledButton.icon(
+                        onPressed: _saving ? null : _save,
+                        icon: _saving
+                            ? const SizedBox.square(
+                                dimension: 16,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : const Icon(Icons.save_outlined),
+                        label: Text(_saving ? 'Sauvegarde…' : 'Sauvegarder'),
+                      ),
+                      const SizedBox(height: 8),
+                      OutlinedButton.icon(
+                        onPressed: _saving ? null : _cancelEdit,
+                        icon: const Icon(Icons.close),
+                        label: const Text('Annuler'),
                       ),
                     ],
                   ),
                 ],
-              ),
+              ],
             ),
-            const SizedBox(width: 8),
-            if (_editing) ...[
-              FilledButton.icon(
-                onPressed: _saving ? null : _save,
-                icon: _saving
-                    ? const SizedBox.square(
-                        dimension: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.save_outlined),
-                label: Text(_saving ? 'Sauvegarde…' : 'Sauvegarder'),
-              ),
-              const SizedBox(width: 8),
-              OutlinedButton.icon(
-                onPressed: _saving ? null : _cancelEdit,
-                icon: const Icon(Icons.close),
-                label: const Text('Annuler'),
-              ),
-            ] else
-              FilledButton.icon(
-                onPressed: () => setState(() => _editing = true),
-                icon: const Icon(Icons.edit_outlined),
-                label: const Text('Modifier'),
-              ),
-          ],
-        ),
-        const SizedBox(height: 16),
-
-        // Card infos
-        Card(
-          elevation: 0,
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: LayoutBuilder(builder: (context, c) {
-              final isWide = c.maxWidth >= 700;
-              return isWide
-                  ? Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(child: _buildIdentityForm()),
-                        const SizedBox(width: 16),
-                        Expanded(child: _buildAccountInfo(p)),
-                      ],
-                    )
-                  : Column(
-                      children: [
-                        _buildIdentityForm(),
-                        const SizedBox(height: 16),
-                        _buildAccountInfo(p),
-                      ],
-                    );
-            }),
           ),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 12),
 
-        // Card sécurité / mot de passe
+        // Card sécurité
         Card(
           elevation: 0,
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 decoration: const BoxDecoration(
                   gradient: LinearGradient(
                     colors: [Color(0xFF2563EB), Color(0xFF16A34A)],
                   ),
-                  borderRadius:
-                      BorderRadius.vertical(top: Radius.circular(16)),
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
                 ),
                 child: const Text(
                   'Sécurité du compte',
                   style: TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.w800,
+                    fontSize: 16,
                   ),
                 ),
               ),
@@ -433,12 +424,14 @@ class _AdminProfilePageState extends ConsumerState<AdminProfilePage> {
             title: 'Membre depuis',
             value: _fmtDate(p.dateJoined),
           ),
-          if (p.lastLogin != null)
+          if (p.lastLogin != null) ...[
+            const SizedBox(height: 8),
             _IconRow(
               icon: Icons.verified_user_outlined,
               title: 'Dernière connexion',
               value: _fmtDateTime(p.lastLogin!),
             ),
+          ],
         ],
       ),
     );
@@ -447,21 +440,22 @@ class _AdminProfilePageState extends ConsumerState<AdminProfilePage> {
   Widget _buildPwdCta() {
     return Column(
       children: [
-        const Icon(Icons.lock_outline, size: 52, color: Colors.black26),
+        const Icon(Icons.lock_outline, size: 48, color: Colors.black26),
         const SizedBox(height: 8),
         const Text(
           'Modifier votre mot de passe',
-          style: TextStyle(fontWeight: FontWeight.w700),
+          style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
         ),
         const SizedBox(height: 6),
         const Text(
           'Assurez-vous que votre compte reste sécurisé',
-          style: TextStyle(color: Color(0xFF64748B)),
+          style: TextStyle(color: Color(0xFF64748B), fontSize: 13),
+          textAlign: TextAlign.center,
         ),
         const SizedBox(height: 12),
         FilledButton.icon(
           onPressed: () => setState(() => _showPwd = true),
-          icon: const Icon(Icons.lock_reset),
+          icon: const Icon(Icons.lock_reset, size: 18),
           label: const Text('Modifier le mot de passe'),
         ),
       ],
@@ -487,26 +481,29 @@ class _AdminProfilePageState extends ConsumerState<AdminProfilePage> {
         ),
         const SizedBox(height: 10),
         _PwdField(
-          label: 'Confirmer le nouveau mot de passe',
+          label: 'Confirmer le nouveau',
           controller: _confirmPwd,
           obscure: !_showConfirm,
           toggle: () => setState(() => _showConfirm = !_showConfirm),
         ),
         const SizedBox(height: 12),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             FilledButton.icon(
               onPressed: _changingPwd ? null : _changePassword,
               icon: _changingPwd
                   ? const SizedBox.square(
                       dimension: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2),
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
                     )
-                  : const Icon(Icons.check_circle_outline),
-              label: Text(_changingPwd ? 'Modification…' : 'Modifier le mot de passe'),
+                  : const Icon(Icons.check_circle_outline, size: 18),
+              label: Text(_changingPwd ? 'Modification…' : 'Modifier'),
             ),
+            const SizedBox(height: 8),
             OutlinedButton(
               onPressed: _changingPwd
                   ? null
@@ -540,14 +537,12 @@ class _ProfileService {
   final Dio _dio = DioClient.instance.dio;
 
   Future<int?> currentUserId() async {
-    // Essaye le JWT
     final token = await SecureAuthStorage.instance.getAccessToken();
     if (token != null && token.isNotEmpty) {
       try {
         final parts = token.split('.');
         if (parts.length >= 2) {
-          final payload =
-              utf8.decode(base64Url.decode(base64Url.normalize(parts[1])));
+          final payload = utf8.decode(base64Url.decode(base64Url.normalize(parts[1])));
           final map = json.decode(payload) as Map<String, dynamic>;
           final id = map['user_id'] ?? map['id'] ?? map['sub'];
           if (id is int) return id;
@@ -559,7 +554,6 @@ class _ProfileService {
       } catch (_) {}
     }
 
-    // Fallback: /users/me/
     try {
       final res = await _dio.get(
         '/users/me/',
@@ -659,7 +653,6 @@ class _AdminProfile {
   });
 
   factory _AdminProfile.fromJson(Map<String, dynamic> d) {
-    // rôle déduit si absent
     final role = (d['role']?.toString().toLowerCase()) ??
         ((d['is_superuser'] == true)
             ? 'admin'
@@ -707,15 +700,18 @@ class _CenteredLoader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Center(
-      child: Column(mainAxisSize: MainAxisSize.min, children: [
-        const SizedBox(
-          width: 42,
-          height: 42,
-          child: CircularProgressIndicator(),
-        ),
-        const SizedBox(height: 10),
-        Text(label),
-      ]),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const SizedBox(
+            width: 42,
+            height: 42,
+            child: CircularProgressIndicator(),
+          ),
+          const SizedBox(height: 10),
+          Text(label),
+        ],
+      ),
     );
   }
 }
@@ -735,7 +731,9 @@ class _FieldLabel extends StatelessWidget {
           style: const TextStyle(
             fontWeight: FontWeight.w700,
             color: Color(0xFF0F172A),
+            fontSize: 14,
           ),
+          overflow: TextOverflow.ellipsis,
         ),
       ],
     );
@@ -758,6 +756,7 @@ class _ReadBox extends StatelessWidget {
       child: Text(
         text,
         style: const TextStyle(fontWeight: FontWeight.w600),
+        overflow: TextOverflow.ellipsis,
       ),
     );
   }
@@ -778,13 +777,25 @@ class _IconRow extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(title,
-                  style: const TextStyle(
-                      color: Color(0xFF1F2937), fontWeight: FontWeight.w600)),
+              Text(
+                title,
+                style: const TextStyle(
+                  color: Color(0xFF1F2937),
+                  fontWeight: FontWeight.w600,
+                  fontSize: 12,
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
               const SizedBox(height: 2),
-              Text(value,
-                  style: const TextStyle(
-                      color: Color(0xFF0F172A), fontWeight: FontWeight.w700)),
+              Text(
+                value,
+                style: const TextStyle(
+                  color: Color(0xFF0F172A),
+                  fontWeight: FontWeight.w700,
+                  fontSize: 13,
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
             ],
           ),
         ),
@@ -821,7 +832,10 @@ class _PwdField extends StatelessWidget {
             isDense: true,
             suffixIcon: IconButton(
               onPressed: toggle,
-              icon: Icon(obscure ? Icons.visibility : Icons.visibility_off),
+              icon: Icon(
+                obscure ? Icons.visibility : Icons.visibility_off,
+                size: 20,
+              ),
               tooltip: obscure ? 'Afficher' : 'Cacher',
             ),
           ),
@@ -839,27 +853,38 @@ class _ErrorCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Center(
-      child: Card(
-        elevation: 0,
-        color: const Color(0xFFFFF7ED),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        child: Padding(
-          padding: const EdgeInsets.all(18),
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
-            const Icon(Icons.warning_amber_rounded,
-                size: 42, color: Color(0xFFF97316)),
-            const SizedBox(height: 8),
-            Text(title,
-                style: const TextStyle(
-                    fontWeight: FontWeight.w800, color: Color(0xFF7C2D12))),
-            const SizedBox(height: 6),
-            Text(message, textAlign: TextAlign.center),
-            const SizedBox(height: 10),
-            FilledButton(
-              onPressed: () => context.go('/admin'),
-              child: const Text('Retour au dashboard'),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Card(
+          elevation: 0,
+          color: const Color(0xFFFFF7ED),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          child: Padding(
+            padding: const EdgeInsets.all(18),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.warning_amber_rounded, size: 42, color: Color(0xFFF97316)),
+                const SizedBox(height: 8),
+                Text(
+                  title,
+                  style: const TextStyle(fontWeight: FontWeight.w800, color: Color(0xFF7C2D12)),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  message,
+                  textAlign: TextAlign.center,
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 3,
+                ),
+                const SizedBox(height: 10),
+                FilledButton(
+                  onPressed: () => context.go('/admin'),
+                  child: const Text('Retour au dashboard'),
+                ),
+              ],
             ),
-          ]),
+          ),
         ),
       ),
     );
