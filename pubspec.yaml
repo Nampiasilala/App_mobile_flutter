@@ -31,13 +31,20 @@ dependencies:
 dev_dependencies:
   flutter_test:
     sdk: flutter
-
+  flutter_launcher_icons: ^0.13.1
 
 
   flutter_lints: ^6.0.0
   build_runner: ^2.7.0
   freezed: ^3.2.0
   json_serializable: ^6.10.0
+
+
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: true
+  image_path: "assets/logo.png"  # <-- ton image source
+  min_sdk_android: 21 # nécessaire pour Android
 
 flutter:
   uses-material-design: true

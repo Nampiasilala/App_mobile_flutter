@@ -64,7 +64,11 @@ final _routerProvider = Provider<GoRouter>((ref) {
 
       // Admin (Shell + enfants)
       ShellRoute(
-        builder: (_, __, child) => AdminShellPage(child: child),
+        // ⬇️ on passe l'URL courante au shell pour marquer le bouton actif
+        builder: (_, state, child) => AdminShellPage(
+          child: child,
+          locationPath: state.uri.path,
+        ),
         routes: [
           GoRoute(
             path: '/admin',
