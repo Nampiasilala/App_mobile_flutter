@@ -7,30 +7,51 @@ import '../../../core/ui/smart_app_bar.dart';
 import '../../../core/network/dio_client.dart';
 import '../../auth/providers.dart';
 
-// ⬇️ IMPORTANT : importe le dialog ici
 import '../widgets/edit_equipment_dialog.dart';
 
 // ----------------- Modèles & helpers -----------------
 enum EquipmentCategory {
-  panneau_solaire, batterie, regulateur, onduleur, cable,
-  disjoncteur, parafoudre, support, boitier_jonction, connecteur, monitoring, autre,
+  panneau_solaire,
+  batterie,
+  regulateur,
+  onduleur,
+  cable,
+  disjoncteur,
+  parafoudre,
+  support,
+  boitier_jonction,
+  connecteur,
+  monitoring,
+  autre,
 }
 
 extension EquipmentCategoryX on EquipmentCategory {
   String get label {
     switch (this) {
-      case EquipmentCategory.panneau_solaire: return 'Panneau solaire';
-      case EquipmentCategory.batterie:        return 'Batterie';
-      case EquipmentCategory.regulateur:      return 'Régulateur';
-      case EquipmentCategory.onduleur:        return 'Onduleur';
-      case EquipmentCategory.cable:           return 'Câble';
-      case EquipmentCategory.disjoncteur:     return 'Disjoncteur';
-      case EquipmentCategory.parafoudre:      return 'Parafoudre';
-      case EquipmentCategory.support:         return 'Support';
-      case EquipmentCategory.boitier_jonction:return 'Boîtier de jonction';
-      case EquipmentCategory.connecteur:      return 'Connecteur';
-      case EquipmentCategory.monitoring:      return 'Monitoring';
-      case EquipmentCategory.autre:           return 'Autre';
+      case EquipmentCategory.panneau_solaire:
+        return 'Panneau solaire';
+      case EquipmentCategory.batterie:
+        return 'Batterie';
+      case EquipmentCategory.regulateur:
+        return 'Régulateur';
+      case EquipmentCategory.onduleur:
+        return 'Onduleur';
+      case EquipmentCategory.cable:
+        return 'Câble';
+      case EquipmentCategory.disjoncteur:
+        return 'Disjoncteur';
+      case EquipmentCategory.parafoudre:
+        return 'Parafoudre';
+      case EquipmentCategory.support:
+        return 'Support';
+      case EquipmentCategory.boitier_jonction:
+        return 'Boîtier de jonction';
+      case EquipmentCategory.connecteur:
+        return 'Connecteur';
+      case EquipmentCategory.monitoring:
+        return 'Monitoring';
+      case EquipmentCategory.autre:
+        return 'Autre';
     }
   }
 
@@ -54,7 +75,13 @@ class Equipment {
   final String? devise;
   final num? puissanceW, capaciteAh, tensionNominaleV, vmpV, vocV;
   final String? typeRegulateur;
-  final num? courantA, pvVocMaxV, mpptVMinV, mpptVMaxV, puissanceSurgebW, sectionMm2, ampaciteA;
+  final num? courantA,
+      pvVocMaxV,
+      mpptVMinV,
+      mpptVMaxV,
+      puissanceSurgebW,
+      sectionMm2,
+      ampaciteA;
   final String? entreeDcV;
 
   Equipment({
@@ -83,14 +110,40 @@ class Equipment {
   });
 
   factory Equipment.fromJson(Map<String, dynamic> m) {
-    num? _n(Object? v) => v == null ? null : (v is num ? v : num.tryParse('$v'));
-    int _i(Object? v) => v is int ? v : int.tryParse('$v') ?? 0;
+    num? _n(Object? v) {
+      if (v == null) return null;
+      if (v is num) return v;
+      final s = '$v'.trim().replaceAll('\u00A0', '').replaceAll(' ', '');
+      // Remplacer la virgule par un point pour parser "150,5"
+      final s2 = s.replaceAll(',', '.');
+      return num.tryParse(s2);
+    }
+
+    int _i(Object? v) {
+      if (v == null) return 0;
+      if (v is int) return v;
+      if (v is num) return v.toInt();
+      final s = '$v'.trim().replaceAll('\u00A0', '').replaceAll(' ', '');
+      final s2 = s.replaceAll(',', '.');
+      final parsed = num.tryParse(s2);
+      if (parsed != null) return parsed.toInt();
+
+      // Dernier recours : retirer tout sauf chiffres et signes
+      final digits = RegExp(r'[-+]?\d+');
+      final match = digits.firstMatch(s);
+      return match != null ? int.parse(match.group(0)!) : 0;
+    }
 
     return Equipment(
       id: _i(m['id']),
-      categorie: EquipmentCategoryX.fromString(m['categorie']) ?? EquipmentCategory.autre,
+      categorie:
+          EquipmentCategoryX.fromString(m['categorie']) ??
+          EquipmentCategory.autre,
       reference: (m['reference'] ?? '') as String,
-      prixUnitaire: _i(m['prix_unitaire']),
+      // Accepte plusieurs variantes de clé
+      prixUnitaire: _i(
+        m['prix_unitaire'] ?? m['prixUnitaire'] ?? m['prix'] ?? m['price'],
+      ),
       devise: m['devise'] as String?,
       marque: m['marque'] as String?,
       modele: m['modele'] as String?,
@@ -117,7 +170,8 @@ class Equipment {
 class AdminEquipmentsPage extends ConsumerStatefulWidget {
   const AdminEquipmentsPage({super.key});
   @override
-  ConsumerState<AdminEquipmentsPage> createState() => _AdminEquipmentsPageState();
+  ConsumerState<AdminEquipmentsPage> createState() =>
+      _AdminEquipmentsPageState();
 }
 
 class _AdminEquipmentsPageState extends ConsumerState<AdminEquipmentsPage> {
@@ -127,7 +181,7 @@ class _AdminEquipmentsPageState extends ConsumerState<AdminEquipmentsPage> {
   bool _loading = true;
 
   String _search = '';
-  String _filter = 'Tous'; // 'Tous' ou EquipmentCategory.name
+  String _filter = 'Tous';
 
   @override
   void initState() {
@@ -143,7 +197,6 @@ class _AdminEquipmentsPageState extends ConsumerState<AdminEquipmentsPage> {
         options: Options(extra: {'requiresAuth': true}),
       );
 
-      // ⬇️ Corrige le typage: List<dynamic> -> List<Equipment>
       final List<dynamic> raw = res.data as List<dynamic>;
       final List<Equipment> data = raw
           .map((e) => Equipment.fromJson(Map<String, dynamic>.from(e as Map)))
@@ -151,7 +204,9 @@ class _AdminEquipmentsPageState extends ConsumerState<AdminEquipmentsPage> {
 
       setState(() => _items = data);
     } on DioException catch (e) {
-      _snack('Erreur de chargement: ${e.response?.statusCode ?? ''} ${e.message ?? ''}');
+      _snack(
+        'Erreur de chargement: ${e.response?.statusCode ?? ''} ${e.message ?? ''}',
+      );
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -160,7 +215,10 @@ class _AdminEquipmentsPageState extends ConsumerState<AdminEquipmentsPage> {
   void _snack(String m, {bool ok = false}) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(m), backgroundColor: ok ? Colors.green.shade700 : null),
+      SnackBar(
+        content: Text(m),
+        backgroundColor: ok ? Colors.green.shade700 : null,
+      ),
     );
   }
 
@@ -191,7 +249,6 @@ class _AdminEquipmentsPageState extends ConsumerState<AdminEquipmentsPage> {
   }
 
   Future<void> _openEdit({Equipment? equipment}) async {
-    // ⬇️ Le bon type générique est EditEquipmentResult (pas EditResult)
     final result = await showDialog<EditEquipmentResult>(
       context: context,
       builder: (_) => EditEquipmentDialog(item: equipment),
@@ -207,14 +264,20 @@ class _AdminEquipmentsPageState extends ConsumerState<AdminEquipmentsPage> {
         break;
       case EditEquipmentAction.update:
         if (result.item != null) {
-          setState(() => _items =
-              _items.map((x) => x.id == result.item!.id ? result.item! : x).toList());
+          setState(
+            () => _items = _items
+                .map((x) => x.id == result.item!.id ? result.item! : x)
+                .toList(),
+          );
           _snack('Équipement modifié', ok: true);
         }
         break;
       case EditEquipmentAction.delete:
         if (result.deletedId != null) {
-          setState(() => _items = _items.where((x) => x.id != result.deletedId).toList());
+          setState(
+            () =>
+                _items = _items.where((x) => x.id != result.deletedId).toList(),
+          );
           _snack('Équipement supprimé', ok: true);
         }
         break;
@@ -223,7 +286,6 @@ class _AdminEquipmentsPageState extends ConsumerState<AdminEquipmentsPage> {
     }
   }
 
-  // ----------------- UI mobile-first sans débordements -----------------
   @override
   Widget build(BuildContext context) {
     final isAdmin = ref.watch(authStateProvider).isAdmin;
@@ -233,153 +295,142 @@ class _AdminEquipmentsPageState extends ConsumerState<AdminEquipmentsPage> {
       });
     }
 
-    // Basculer le FAB en "mini" si la largeur est très petite
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final isNarrow = constraints.maxWidth < 360;
-
-        return Scaffold(
-          appBar: buildSmartAppBar(context, 'Gestion des équipements'),
-          // Évite que le clavier pousse le FAB hors écran
-          resizeToAvoidBottomInset: true,
-
-          floatingActionButton: FloatingActionButton.extended(
-            onPressed: () => _openEdit(),
-            icon: const Icon(Icons.add),
-            label: isNarrow ? const SizedBox.shrink() : const Text('Ajouter'),
-            isExtended: !isNarrow,
-          ),
-
-          body: SafeArea(
-            child: _loading
-                ? const Center(child: CircularProgressIndicator())
-                : Column(
-                    children: [
-                      // Barre de recherche + filtre
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(12, 12, 12, 6),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            Expanded(
-                              child: TextField(
-                                decoration: const InputDecoration(
-                                  prefixIcon: Icon(Icons.search),
-                                  hintText: 'Référence / Modèle / Catégorie…',
-                                  border: OutlineInputBorder(),
-                                  isDense: true,
-                                ),
-                                textInputAction: TextInputAction.search,
-                                onChanged: (v) => setState(() => _search = v),
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-
-                            // Le Dropdown ne déborde plus et ellipsera le libellé
-                            ConstrainedBox(
-                              constraints: const BoxConstraints(minWidth: 120, maxWidth: 180),
-                              child: DropdownButtonHideUnderline(
-                                child: DropdownButton<String>(
-                                  isDense: true,
-                                  isExpanded: true,
-                                  value: _filter,
-                                  items: <String>[
-                                    'Tous',
-                                    ...EquipmentCategory.values.map((e) => e.name),
-                                  ].map((v) {
-                                    final label = v == 'Tous'
-                                        ? 'Tous'
-                                        : EquipmentCategoryX.fromString(v)!.label;
-                                    return DropdownMenuItem<String>(
-                                      value: v,
-                                      child: Text(
-                                        label,
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    );
-                                  }).toList(),
-                                  // Évite l’overflow du "selected item" dans la zone fermée
-                                  selectedItemBuilder: (ctx) {
-                                    return <String>[
-                                      'Tous',
-                                      ...EquipmentCategory.values.map((e) => e.name),
-                                    ].map((v) {
-                                      final label = v == 'Tous'
-                                          ? 'Tous'
-                                          : EquipmentCategoryX.fromString(v)!.label;
-                                      return Align(
-                                        alignment: Alignment.centerLeft,
-                                        child: Text(
-                                          label,
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                      );
-                                    }).toList();
-                                  },
-                                  onChanged: (v) => setState(() => _filter = v ?? 'Tous'),
-                                ),
-                              ),
-                            ),
-                          ],
+    return Scaffold(
+      appBar: buildSmartAppBar(context, 'Équipements'),
+      resizeToAvoidBottomInset: true,
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => _openEdit(),
+        child: const Icon(Icons.add),
+      ),
+      body: SafeArea(
+        child: _loading
+            ? const Center(child: CircularProgressIndicator())
+            : Column(
+                children: [
+                  // Barre de recherche et filtre (layout vertical pour mobile)
+                  Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: Column(
+                      children: [
+                        // Recherche
+                        TextField(
+                          decoration: const InputDecoration(
+                            prefixIcon: Icon(Icons.search),
+                            hintText: 'Rechercher…',
+                            border: OutlineInputBorder(),
+                            isDense: true,
+                          ),
+                          textInputAction: TextInputAction.search,
+                          onChanged: (v) => setState(() => _search = v),
                         ),
-                      ),
+                        const SizedBox(height: 8),
+                        // Filtre catégorie
+                        DropdownButtonFormField<String>(
+                          value: _filter,
+                          isExpanded: true,
+                          decoration: const InputDecoration(
+                            prefixIcon: Icon(Icons.filter_list),
+                            border: OutlineInputBorder(),
+                            isDense: true,
+                            contentPadding: EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 8,
+                            ),
+                          ),
+                          items:
+                              <String>[
+                                'Tous',
+                                ...EquipmentCategory.values.map((e) => e.name),
+                              ].map((v) {
+                                final label = v == 'Tous'
+                                    ? 'Tous'
+                                    : EquipmentCategoryX.fromString(v)!.label;
+                                return DropdownMenuItem<String>(
+                                  value: v,
+                                  child: Text(
+                                    label,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                );
+                              }).toList(),
+                          onChanged: (v) =>
+                              setState(() => _filter = v ?? 'Tous'),
+                        ),
+                      ],
+                    ),
+                  ),
 
-                      const SizedBox(height: 2),
+                  // Liste des équipements
+                  Expanded(
+                    child: _filtered.isEmpty
+                        ? const Center(
+                            child: Text('Aucun équipement à afficher'),
+                          )
+                        : RefreshIndicator(
+                            onRefresh: _load,
+                            child: ListView.separated(
+                              physics: const AlwaysScrollableScrollPhysics(),
+                              itemCount: _filtered.length,
+                              separatorBuilder: (_, __) =>
+                                  const Divider(height: 1),
+                              itemBuilder: (_, i) {
+                                final e = _filtered.elementAt(i);
+                                final titre =
+                                    e.modele ?? e.nomCommercial ?? e.reference;
 
-                      // Liste + Pull-to-refresh
-                      Expanded(
-                        child: _filtered.isEmpty
-                            ? const Center(child: Text('Aucun équipement à afficher'))
-                            : RefreshIndicator(
-                                onRefresh: _load,
-                                child: ListView.separated(
-                                  physics: const AlwaysScrollableScrollPhysics(),
-                                  itemCount: _filtered.length,
-                                  separatorBuilder: (_, __) => const Divider(height: 0),
-                                  itemBuilder: (_, i) {
-                                    final e = _filtered.elementAt(i);
-
-                                    // Compose un titre compact et non‑cassant
-                                    final titre = [
-                                      e.reference,
-                                      (e.modele ?? e.nomCommercial ?? '—'),
-                                    ].where((s) => (s).trim().isNotEmpty).join(' — ');
-
-                                    return ListTile(
-                                      onTap: () => _openEdit(equipment: e),
-
-                                      // Rend la liste plus “dense” pour mobile
-                                      dense: true,
-                                      visualDensity: const VisualDensity(vertical: -2),
-
-                                      // Évite les overflows
-                                      title: Text(
-                                        titre,
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                      subtitle: Text(
+                                return ListTile(
+                                  onTap: () => _openEdit(equipment: e),
+                                  dense: true,
+                                  isThreeLine: e.reference.isNotEmpty,
+                                  title: Text(
+                                    e.modele ?? e.nomCommercial ?? e.reference,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  subtitle: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
                                         '${e.categorie.label} • ${_fmtMGA(e.prixUnitaire)}',
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
+                                        style: const TextStyle(fontSize: 13),
                                       ),
-
-                                      // Trailing compact + contrainte de largeur
-                                      trailing: const Icon(Icons.chevron_right, size: 20),
-                                      contentPadding:
-                                          const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                    );
-                                  },
-                                ),
-                              ),
-                      ),
-                    ],
+                                      if (e.reference.isNotEmpty)
+                                        Text(
+                                          'Réf. ${e.reference}',
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            color: Theme.of(
+                                              context,
+                                            ).textTheme.bodySmall?.color,
+                                          ),
+                                        ),
+                                    ],
+                                  ),
+                                  trailing: const Icon(
+                                    Icons.chevron_right,
+                                    size: 20,
+                                  ),
+                                  contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                    vertical: 8,
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
                   ),
-          ),
-        );
-      },
+                ],
+              ),
+      ),
     );
   }
 }
