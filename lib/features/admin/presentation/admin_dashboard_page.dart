@@ -34,6 +34,50 @@ class AdminDashboardPage extends ConsumerWidget {
     }
   }
 
+  // Méthode pour gérer la déconnexion
+  Future<void> _handleLogout(BuildContext context, WidgetRef ref) async {
+    try {
+      // Afficher un dialog de confirmation
+      final shouldLogout = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Déconnexion'),
+          content: const Text('Êtes-vous sûr de vouloir vous déconnecter ?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Annuler'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('Déconnexion'),
+            ),
+          ],
+        ),
+      );
+
+      if (shouldLogout == true) {
+        // Appeler la méthode de déconnexion du provider
+        await ref.read(authStateProvider.notifier).logout();
+        
+        // Rediriger vers la page de connexion ou d'accueil
+        if (context.mounted) {
+          context.go('/'); // ou '/' selon votre routing
+        }
+      }
+    } catch (e) {
+      // Gérer l'erreur
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erreur lors de la déconnexion: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     // On garde le watch si tu t'en sers pour protéger la route via un guard
@@ -95,13 +139,19 @@ class AdminDashboardPage extends ConsumerWidget {
           appBar: buildSmartAppBar(
             context,
             'Admin',
-            // ⬇️ Sous-titre directement dans l’AppBar
+            // ⬇️ Sous-titre directement dans l'AppBar
             subtitle: loading ? 'Connexion...' : (email ?? 'Connecté'),
             actions: [
               IconButton(
                 onPressed: () => context.go('/'),
                 icon: const Icon(Icons.home_outlined),
                 tooltip: 'Accueil',
+              ),
+              // ⬇️ NOUVEAU : Bouton de déconnexion
+              IconButton(
+                onPressed: () => _handleLogout(context, ref),
+                icon: const Icon(Icons.logout),
+                tooltip: 'Déconnexion',
               ),
             ],
           ),

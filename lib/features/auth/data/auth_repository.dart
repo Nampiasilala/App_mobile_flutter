@@ -105,11 +105,15 @@ class AuthRepository {
 
       final groups = map['groups'];
       if (groups is List && groups.map((e) => '$e'.toLowerCase())
-          .any((g) => g.contains('admin') || g.contains('staff'))) return true;
+          .any((g) => g.contains('admin') || g.contains('staff'))) {
+        return true;
+      }
 
       final roles = map['roles'];
       if (roles is List && roles.map((e) => '$e'.toLowerCase())
-          .any((g) => g.contains('admin') || g.contains('staff'))) return true;
+          .any((g) => g.contains('admin') || g.contains('staff'))) {
+        return true;
+      }
     } catch (_) {}
     return false;
   }

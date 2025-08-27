@@ -2,7 +2,7 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
-PORT="${PORT:-8001}"                 # port où tourne ton backend local
+PORT="${PORT:-8000}"                 # port où tourne ton backend local
 APP_DIR="$(cd "$(dirname "$0")" && pwd)"
 DART_CONST="$APP_DIR/lib/constants/api_url.dart"
 NGROK_LOG="$APP_DIR/ngrok.log"

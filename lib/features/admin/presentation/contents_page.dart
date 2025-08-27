@@ -408,7 +408,7 @@ class _ContentsPageState extends ConsumerState<ContentsPage> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                '${ex.id == null ? 'Configurer' : 'Modifier'}',
+                                ex.id == null ? 'Configurer' : 'Modifier',
                                 style: const TextStyle(
                                   fontWeight: FontWeight.w700,
                                   fontSize: 16,
@@ -560,7 +560,7 @@ class _TitleRow extends StatelessWidget {
 }
 
 class _CategoryHeader extends StatelessWidget {
-  const _CategoryHeader(this.title, {super.key});
+  const _CategoryHeader(this.title);
   final String title;
 
   @override

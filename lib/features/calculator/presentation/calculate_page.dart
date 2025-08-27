@@ -268,7 +268,7 @@ class _CalculatePageState extends ConsumerState<CalculatePage> {
           pdfResults['Modèle panneau'] = p.modele ?? 'N/A';
           if (p.reference != null) pdfResults['Référence panneau'] = p.reference!;
           if (p.puissance_W != null) pdfResults['Puissance panneau'] = '${p.puissance_W} W';
-          if (p.prix_unitaire != null) pdfResults['Prix unitaire panneau'] = '${p.prix_unitaire!.toStringAsFixed(0)} ${p.devise ?? 'Ar'}';
+          pdfResults['Prix unitaire panneau'] = '${p.prix_unitaire.toStringAsFixed(0)} ${p.devise ?? 'Ar'}';
           pdfResults['Quantité panneaux'] = '${res.nombre_panneaux}';
         }
         
@@ -279,7 +279,7 @@ class _CalculatePageState extends ConsumerState<CalculatePage> {
           if (b.reference != null) pdfResults['Référence batterie'] = b.reference!;
           if (b.capacite_Ah != null) pdfResults['Capacité batterie'] = '${b.capacite_Ah} Ah';
           if (b.tension_nominale_V != null) pdfResults['Tension batterie'] = '${b.tension_nominale_V} V';
-          if (b.prix_unitaire != null) pdfResults['Prix unitaire batterie'] = '${b.prix_unitaire!.toStringAsFixed(0)} ${b.devise ?? 'Ar'}';
+          pdfResults['Prix unitaire batterie'] = '${b.prix_unitaire.toStringAsFixed(0)} ${b.devise ?? 'Ar'}';
           pdfResults['Quantité batteries'] = '${res.nombre_batteries}';
         }
         
@@ -289,7 +289,7 @@ class _CalculatePageState extends ConsumerState<CalculatePage> {
           pdfResults['Modèle régulateur'] = r.modele ?? 'N/A';
           if (r.reference != null) pdfResults['Référence régulateur'] = r.reference!;
           if (r.puissance_W != null) pdfResults['Puissance régulateur'] = '${r.puissance_W} W';
-          if (r.prix_unitaire != null) pdfResults['Prix unitaire régulateur'] = '${r.prix_unitaire!.toStringAsFixed(0)} ${r.devise ?? 'Ar'}';
+          pdfResults['Prix unitaire régulateur'] = '${r.prix_unitaire.toStringAsFixed(0)} ${r.devise ?? 'Ar'}';
           pdfResults['Quantité régulateur'] = '1';
         }
         
@@ -299,7 +299,7 @@ class _CalculatePageState extends ConsumerState<CalculatePage> {
           pdfResults['Modèle onduleur'] = o.modele ?? 'N/A';
           if (o.reference != null) pdfResults['Référence onduleur'] = o.reference!;
           if (o.puissance_W != null) pdfResults['Puissance onduleur'] = '${o.puissance_W} W';
-          if (o.prix_unitaire != null) pdfResults['Prix unitaire onduleur'] = '${o.prix_unitaire!.toStringAsFixed(0)} ${o.devise ?? 'Ar'}';
+          pdfResults['Prix unitaire onduleur'] = '${o.prix_unitaire.toStringAsFixed(0)} ${o.devise ?? 'Ar'}';
           pdfResults['Quantité onduleur'] = '1';
         }
         
@@ -308,7 +308,7 @@ class _CalculatePageState extends ConsumerState<CalculatePage> {
           pdfResults['--- Câble ---'] = '';
           pdfResults['Modèle câble'] = c.modele ?? 'N/A';
           if (c.reference != null) pdfResults['Référence câble'] = c.reference!;
-          if (c.prix_unitaire != null) pdfResults['Prix unitaire câble'] = '${c.prix_unitaire!.toStringAsFixed(0)} ${c.devise ?? 'Ar'}';
+          pdfResults['Prix unitaire câble'] = '${c.prix_unitaire.toStringAsFixed(0)} ${c.devise ?? 'Ar'}';
           pdfResults['Quantité câble'] = 'Selon installation';
         }
       }

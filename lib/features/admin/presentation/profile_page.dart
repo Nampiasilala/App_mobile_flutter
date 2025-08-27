@@ -159,7 +159,7 @@ class _AdminProfilePageState extends ConsumerState<AdminProfilePage> {
   String _roleFromFlags(_AdminProfile p) {
     if (p.isSuperuser) return 'admin';
     if (p.isStaff) return 'manager';
-    return (p.role?.toLowerCase() ?? 'user');
+    return (p.role.toLowerCase() ?? 'user');
   }
 
   Color _roleBg(String role) {

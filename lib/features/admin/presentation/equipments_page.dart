@@ -110,7 +110,7 @@ class Equipment {
   });
 
   factory Equipment.fromJson(Map<String, dynamic> m) {
-    num? _n(Object? v) {
+    num? n(Object? v) {
       if (v == null) return null;
       if (v is num) return v;
       final s = '$v'.trim().replaceAll('\u00A0', '').replaceAll(' ', '');
@@ -119,7 +119,7 @@ class Equipment {
       return num.tryParse(s2);
     }
 
-    int _i(Object? v) {
+    int i(Object? v) {
       if (v == null) return 0;
       if (v is int) return v;
       if (v is num) return v.toInt();
@@ -135,33 +135,33 @@ class Equipment {
     }
 
     return Equipment(
-      id: _i(m['id']),
+      id: i(m['id']),
       categorie:
           EquipmentCategoryX.fromString(m['categorie']) ??
           EquipmentCategory.autre,
       reference: (m['reference'] ?? '') as String,
       // Accepte plusieurs variantes de clé
-      prixUnitaire: _i(
+      prixUnitaire: i(
         m['prix_unitaire'] ?? m['prixUnitaire'] ?? m['prix'] ?? m['price'],
       ),
       devise: m['devise'] as String?,
       marque: m['marque'] as String?,
       modele: m['modele'] as String?,
       nomCommercial: m['nom_commercial'] as String?,
-      puissanceW: _n(m['puissance_W']),
-      capaciteAh: _n(m['capacite_Ah']),
-      tensionNominaleV: _n(m['tension_nominale_V']),
-      vmpV: _n(m['vmp_V']),
-      vocV: _n(m['voc_V']),
+      puissanceW: n(m['puissance_W']),
+      capaciteAh: n(m['capacite_Ah']),
+      tensionNominaleV: n(m['tension_nominale_V']),
+      vmpV: n(m['vmp_V']),
+      vocV: n(m['voc_V']),
       typeRegulateur: m['type_regulateur'] as String?,
-      courantA: _n(m['courant_A']),
-      pvVocMaxV: _n(m['pv_voc_max_V']),
-      mpptVMinV: _n(m['mppt_v_min_V']),
-      mpptVMaxV: _n(m['mppt_v_max_V']),
-      puissanceSurgebW: _n(m['puissance_surgeb_W']),
+      courantA: n(m['courant_A']),
+      pvVocMaxV: n(m['pv_voc_max_V']),
+      mpptVMinV: n(m['mppt_v_min_V']),
+      mpptVMaxV: n(m['mppt_v_max_V']),
+      puissanceSurgebW: n(m['puissance_surgeb_W']),
       entreeDcV: m['entree_dc_V'] as String?,
-      sectionMm2: _n(m['section_mm2']),
-      ampaciteA: _n(m['ampacite_A']),
+      sectionMm2: n(m['section_mm2']),
+      ampaciteA: n(m['ampacite_A']),
     );
   }
 }

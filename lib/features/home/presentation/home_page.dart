@@ -544,7 +544,6 @@ class _GradientButton extends StatelessWidget {
     this.gradient = const LinearGradient(
       colors: [Color(0xFF2563EB), Color(0xFF4F46E5)],
     ),
-    super.key,
   });
 
   final VoidCallback onPressed;
@@ -604,7 +603,6 @@ class _LightButton extends StatelessWidget {
     required this.onPressed,
     required this.label,
     required this.icon,
-    super.key,
   });
   final VoidCallback onPressed;
   final String label;
@@ -695,8 +693,8 @@ class _ResponsiveGrid extends StatelessWidget {
   const _ResponsiveGrid({
     required this.children,
     required this.columnsForWidth,
-    this.gap = 12,
     this.crossAxisSpacing,
+    this.gap = 16.0, // Correction: Initialisation de la variable 'gap'
   });
 
   final List<Widget> children;

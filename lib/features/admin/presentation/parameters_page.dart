@@ -144,15 +144,15 @@ class _ParametersPageState extends ConsumerState<ParametersPage> {
   }
 
   void _seedControllers(Parameters p) {
-    String _fmt(double v, _ParamKey k) =>
+    String fmt(double v, _ParamKey k) =>
         (k == _ParamKey.dod || k == _ParamKey.sMax) ? v.toStringAsFixed(2) : v.toString();
-    _controllers[_ParamKey.nGlobal] = TextEditingController(text: _fmt(p.nGlobal, _ParamKey.nGlobal));
-    _controllers[_ParamKey.kSecurite] = TextEditingController(text: _fmt(p.kSecurite, _ParamKey.kSecurite));
-    _controllers[_ParamKey.dod] = TextEditingController(text: _fmt(p.dod, _ParamKey.dod));
+    _controllers[_ParamKey.nGlobal] = TextEditingController(text: fmt(p.nGlobal, _ParamKey.nGlobal));
+    _controllers[_ParamKey.kSecurite] = TextEditingController(text: fmt(p.kSecurite, _ParamKey.kSecurite));
+    _controllers[_ParamKey.dod] = TextEditingController(text: fmt(p.dod, _ParamKey.dod));
     _controllers[_ParamKey.kDimensionnement] =
-        TextEditingController(text: _fmt(p.kDimensionnement, _ParamKey.kDimensionnement));
-    _controllers[_ParamKey.sMax] = TextEditingController(text: _fmt(p.sMax, _ParamKey.sMax));
-    _controllers[_ParamKey.iSec] = TextEditingController(text: _fmt(p.iSec, _ParamKey.iSec));
+        TextEditingController(text: fmt(p.kDimensionnement, _ParamKey.kDimensionnement));
+    _controllers[_ParamKey.sMax] = TextEditingController(text: fmt(p.sMax, _ParamKey.sMax));
+    _controllers[_ParamKey.iSec] = TextEditingController(text: fmt(p.iSec, _ParamKey.iSec));
   }
 
   void _showSnack(String msg, {bool success = false}) {
@@ -188,17 +188,17 @@ class _ParametersPageState extends ConsumerState<ParametersPage> {
   }
 
   Parameters? _readFromControllers() {
-    double _parse(_ParamKey k) {
+    double parse(_ParamKey k) {
       final raw = _controllers[k]!.text.replaceAll(',', '.');
       return double.tryParse(raw) ?? double.nan;
     }
 
-    final nGlobal = _parse(_ParamKey.nGlobal);
-    final kSecurite = _parse(_ParamKey.kSecurite);
-    final dod = _parse(_ParamKey.dod);
-    final kDim = _parse(_ParamKey.kDimensionnement);
-    final sMax = _parse(_ParamKey.sMax);
-    final iSec = _parse(_ParamKey.iSec);
+    final nGlobal = parse(_ParamKey.nGlobal);
+    final kSecurite = parse(_ParamKey.kSecurite);
+    final dod = parse(_ParamKey.dod);
+    final kDim = parse(_ParamKey.kDimensionnement);
+    final sMax = parse(_ParamKey.sMax);
+    final iSec = parse(_ParamKey.iSec);
 
     final vals = [nGlobal, kSecurite, dod, kDim, sMax, iSec];
     if (vals.any((v) => v.isNaN)) {
