@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../auth/providers.dart';
+import '../../auth/providers.dart'; // Assurez-vous que ce provider est correct
 import '../../../core/ui/smart_app_bar.dart';
 
 class LoginPage extends ConsumerStatefulWidget {
@@ -36,6 +36,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
           );
 
       final isAdmin = ref.read(authStateProvider).isAdmin;
+      final isEntreprise = ref.read(authStateProvider).isEntreprise; // Ajout de isEntreprise
 
       if (!ok) {
         if (!mounted) return;
@@ -45,21 +46,22 @@ class _LoginPageState extends ConsumerState<LoginPage> {
         return;
       }
 
-      if (!isAdmin) {
+      if (isAdmin) {
+        if (!mounted) return;
+        context.go('/admin');
+      } else if (isEntreprise) {
+        if (!mounted) return;
+        context.go('/entreprise'); // Redirige vers la page entreprise
+      } else {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Accès refusé : compte non-admin.')),
         );
         return;
       }
-
-      if (!mounted) return;
-      context.go('/admin');
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toString())),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -87,7 +89,10 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                   children: [
                     TextFormField(
                       controller: _email,
-                      autofillHints: const [AutofillHints.email, AutofillHints.username],
+                      autofillHints: const [
+                        AutofillHints.email,
+                        AutofillHints.username,
+                      ],
                       keyboardType: TextInputType.emailAddress,
                       textInputAction: TextInputAction.next,
                       decoration: inputDecoration.copyWith(labelText: 'Email'),
@@ -106,12 +111,15 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                         labelText: 'Mot de passe',
                         suffixIcon: IconButton(
                           tooltip: _obscure ? 'Afficher' : 'Cacher',
-                          icon: Icon(_obscure ? Icons.visibility : Icons.visibility_off),
+                          icon: Icon(
+                            _obscure ? Icons.visibility : Icons.visibility_off,
+                          ),
                           onPressed: () => setState(() => _obscure = !_obscure),
                         ),
                       ),
-                      validator: (v) =>
-                          (v == null || v.isEmpty) ? 'Veuillez saisir votre mot de passe' : null,
+                      validator: (v) => (v == null || v.isEmpty)
+                          ? 'Veuillez saisir votre mot de passe'
+                          : null,
                     ),
                     const SizedBox(height: 20),
                     SizedBox(
@@ -120,7 +128,11 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                         onPressed: _loading ? null : _submit,
                         icon: _loading
                             ? const SizedBox.square(
-                                dimension: 18, child: CircularProgressIndicator(strokeWidth: 2))
+                                dimension: 18,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              )
                             : const Icon(Icons.login),
                         label: Text(_loading ? 'Connexion…' : 'Se connecter'),
                       ),

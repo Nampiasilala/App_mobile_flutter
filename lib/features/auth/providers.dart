@@ -11,9 +11,12 @@ final authStateProvider = ChangeNotifierProvider<AuthState>((ref) {
 
 class AuthState extends ChangeNotifier {
   final AuthRepository _repo;
+
   AuthState(this._repo);
 
   bool get isAdmin => _repo.isAdmin;
+  bool get isEntreprise => _repo.isEntreprise;
+
   Stream<void> get authStateStream => _repo.changes;
 
   Future<bool> login(String id, String password) async {
