@@ -1,4 +1,5 @@
 // lib/features/admin/presentation/history_page.dart
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -14,30 +15,61 @@ import '../../../constants/api_url.dart'; // => const String API_BASE_URL
 /* -------------------------------------------------------------------------- */
 
 class EquipmentDetail {
+  final int? id;
   final String modele;
   final String? reference;
+  final String? marque;
+  final String? nomCommercial;
+  final String? categorie;
+
   final num? puissanceW;
   final num? capaciteAh;
   final num? tensionV;
+
+  // PV / câble / régulateur
+  final num? sectionMm2;
+  final num? ampaciteA;
+  final num? vmpV;
+  final num? vocV;
+  final num? courantA;
+
   final num prixUnitaire;
   final String? devise;
 
   EquipmentDetail({
+    this.id,
     required this.modele,
     this.reference,
+    this.marque,
+    this.nomCommercial,
+    this.categorie,
     this.puissanceW,
     this.capaciteAh,
     this.tensionV,
+    this.sectionMm2,
+    this.ampaciteA,
+    this.vmpV,
+    this.vocV,
+    this.courantA,
     required this.prixUnitaire,
     this.devise,
   });
 
   factory EquipmentDetail.fromJson(Map<String, dynamic> j) => EquipmentDetail(
+        id: (j['id'] as num?)?.toInt(),
         modele: (j['modele'] ?? j['model'] ?? '').toString(),
         reference: j['reference']?.toString(),
+        marque: j['marque']?.toString(),
+        nomCommercial: (j['nom_commercial'] ?? j['nomCommercial'])?.toString(),
+        categorie: j['categorie']?.toString(),
         puissanceW: j['puissance_W'] ?? j['puissanceW'],
         capaciteAh: j['capacite_Ah'] ?? j['capaciteAh'],
         tensionV: j['tension_nominale_V'] ?? j['tensionV'],
+        sectionMm2: j['section_mm2'] ?? j['sectionMm2'],
+        ampaciteA: j['ampacite_A'] ?? j['ampaciteA'],
+        vmpV: j['vmp_V'] ?? j['vmpV'],
+        vocV: j['voc_V'] ?? j['vocV'],
+        courantA: j['courant_A'] ?? j['courantA'],
         prixUnitaire: (j['prix_unitaire'] ?? j['prix'] ?? 0) as num,
         devise: j['devise']?.toString(),
       );
@@ -62,17 +94,14 @@ class EquipementsRecommandes {
       EquipementsRecommandes(
         panneau:
             j['panneau'] != null ? EquipmentDetail.fromJson(j['panneau']) : null,
-        batterie: j['batterie'] != null
-            ? EquipmentDetail.fromJson(j['batterie'])
-            : null,
+        batterie:
+            j['batterie'] != null ? EquipmentDetail.fromJson(j['batterie']) : null,
         regulateur: j['regulateur'] != null
             ? EquipmentDetail.fromJson(j['regulateur'])
             : null,
-        onduleur: j['onduleur'] != null
-            ? EquipmentDetail.fromJson(j['onduleur'])
-            : null,
-        cable:
-            j['cable'] != null ? EquipmentDetail.fromJson(j['cable']) : null,
+        onduleur:
+            j['onduleur'] != null ? EquipmentDetail.fromJson(j['onduleur']) : null,
+        cable: j['cable'] != null ? EquipmentDetail.fromJson(j['cable']) : null,
       );
 }
 
@@ -83,12 +112,20 @@ class InputDetails {
   final int vBatterie;
   final String localisation;
 
+  // Champs supplémentaires
+  final num? hSolaire; // kWh/m²/j
+  final num? hVersToit; // m
+  final String? prioriteSelection; // "quantite" | "cout"
+
   InputDetails({
     required this.eJour,
     required this.pMax,
     required this.nAutonomie,
     required this.vBatterie,
     required this.localisation,
+    this.hSolaire,
+    this.hVersToit,
+    this.prioriteSelection,
   });
 
   factory InputDetails.fromJson(Map<String, dynamic> j) => InputDetails(
@@ -97,6 +134,9 @@ class InputDetails {
         nAutonomie: (j['n_autonomie'] ?? 0) as int,
         vBatterie: (j['v_batterie'] ?? 0) as int,
         localisation: (j['localisation'] ?? '').toString(),
+        hSolaire: j['h_solaire'] as num?,
+        hVersToit: j['h_vers_toit'] as num?,
+        prioriteSelection: j['priorite_selection']?.toString(),
       );
 }
 
@@ -112,6 +152,16 @@ class ResultData {
   final InputDetails? entree;
   final EquipementsRecommandes? equipements;
 
+  // Topologies & câble
+  final int? nbBattSerie;
+  final int? nbBattParallele;
+  final String? topologieBatterie;
+  final int? nbPvSerie;
+  final int? nbPvParallele;
+  final String? topologiePv;
+  final num? longueurCableGlobalM; // m
+  final num? prixCableGlobal; // Ar
+
   ResultData({
     required this.id,
     required this.dateCalcul,
@@ -123,6 +173,14 @@ class ResultData {
     required this.coutTotal,
     this.entree,
     this.equipements,
+    this.nbBattSerie,
+    this.nbBattParallele,
+    this.topologieBatterie,
+    this.nbPvSerie,
+    this.nbPvParallele,
+    this.topologiePv,
+    this.longueurCableGlobalM,
+    this.prixCableGlobal,
   });
 
   factory ResultData.fromJson(Map<String, dynamic> j) => ResultData(
@@ -142,6 +200,14 @@ class ResultData {
         equipements: j['equipements_recommandes'] != null
             ? EquipementsRecommandes.fromJson(j['equipements_recommandes'])
             : null,
+        nbBattSerie: (j['nb_batt_serie'] as num?)?.toInt(),
+        nbBattParallele: (j['nb_batt_parallele'] as num?)?.toInt(),
+        topologieBatterie: j['topologie_batterie']?.toString(),
+        nbPvSerie: (j['nb_pv_serie'] as num?)?.toInt(),
+        nbPvParallele: (j['nb_pv_parallele'] as num?)?.toInt(),
+        topologiePv: j['topologie_pv']?.toString(),
+        longueurCableGlobalM: j['longueur_cable_global_m'] as num?,
+        prixCableGlobal: j['prix_cable_global'] as num?,
       );
 }
 
@@ -170,6 +236,20 @@ String formatEnergy(num wh, {bool preferKWh = false}) =>
 String formatVoltage(num v) => '${_nf.format(v)} V';
 String formatPrice(num n, {String currency = 'Ar'}) =>
     '${_nf.format(n)} $currency';
+String formatCurrent(num a) => '${_nf.format(a)} A';
+String formatLength(num m) => '${_nf.format(m)} m';
+
+String humanStrategy(String? s) {
+  switch (s) {
+    case 'quantite':
+      return 'Nombre minimal';
+    case 'cout':
+    case 'prix': // par compat
+      return 'Coût minimal';
+    default:
+      return '—';
+  }
+}
 
 /* -------------------------------------------------------------------------- */
 /*                                   PAGE UI                                  */
@@ -195,6 +275,19 @@ class _AdminHistoryPageState extends State<AdminHistoryPage> {
 
   String get _api => '$API_BASE_URL/api';
 
+  // helpers sûrs
+  bool get _isActive => mounted && context.mounted;
+  void _safeSnack(String msg) {
+    if (!mounted) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final messenger = ScaffoldMessenger.maybeOf(context);
+      messenger
+        ?..hideCurrentSnackBar()
+        ..showSnackBar(SnackBar(content: Text(msg)));
+    });
+  }
+
   @override
   void initState() {
     super.initState();
@@ -211,6 +304,7 @@ class _AdminHistoryPageState extends State<AdminHistoryPage> {
 
   Map<String, String> _headers(String? token) => {
         'Content-Type': 'application/json',
+        'Accept': 'application/json',
         if (token != null && token.isNotEmpty) 'Authorization': 'Bearer $token',
         'ngrok-skip-browser-warning': 'true',
       };
@@ -233,8 +327,10 @@ class _AdminHistoryPageState extends State<AdminHistoryPage> {
       final list =
           data.map((e) => ResultData.fromJson(e as Map<String, dynamic>)).toList()
             ..sort((a, b) => b.dateCalcul.compareTo(a.dateCalcul));
+      if (!_isActive) return;
       setState(() => _items = list);
     } catch (e) {
+      if (!_isActive) return;
       setState(() => _error = e.toString());
     } finally {
       if (mounted) setState(() => _loading = false);
@@ -243,27 +339,46 @@ class _AdminHistoryPageState extends State<AdminHistoryPage> {
 
   Future<void> _delete(int id) async {
     setState(() => _deletingId = id);
+    String? lastErr;
+
+    Future<http.Response> _try(String url, String? token) {
+      final uri = Uri.parse(url);
+      debugPrint('[DELETE] $uri');
+      return http
+          .delete(uri, headers: _headers(token))
+          .timeout(const Duration(seconds: 15));
+    }
+
     try {
       final token = await _getAccessToken();
-      final res = await http.delete(
-        Uri.parse('$_api/dimensionnements/$id/'),
-        headers: _headers(token),
-      );
-      if (res.statusCode != 204 && res.statusCode != 200) {
-        throw Exception('HTTP ${res.statusCode}: ${res.body}');
+      final base = '$_api/dimensionnements/$id';
+      final candidates = <String>[
+        '$base/', // DRF le plus courant
+        base, // certain routers
+      ];
+
+      for (final url in candidates) {
+        try {
+          final res = await _try(url, token);
+          debugPrint('[DELETE ${res.statusCode}] $url body="${res.body}"');
+
+          if (res.statusCode == 204 || res.statusCode == 200) {
+            if (!_isActive) return;
+            setState(() => _items.removeWhere((e) => e.id == id));
+            _safeSnack('Calcul supprimé');
+            return;
+          }
+          lastErr = 'HTTP ${res.statusCode}: ${res.body}';
+        } on TimeoutException {
+          lastErr = 'Timeout au serveur sur $url';
+        } on Object catch (e) {
+          lastErr = e.toString();
+        }
       }
-      setState(() => _items.removeWhere((e) => e.id == id));
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Calcul supprimé')),
-        );
-      }
+
+      throw Exception(lastErr ?? 'Suppression impossible (raison inconnue)');
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erreur: $e')),
-        );
-      }
+      if (_isActive) _safeSnack('Erreur suppression: $e');
     } finally {
       if (mounted) setState(() => _deletingId = null);
     }
@@ -294,48 +409,66 @@ class _AdminHistoryPageState extends State<AdminHistoryPage> {
   Future<void> _confirmDelete(int id) async {
     final ok = await showDialog<bool>(
           context: context,
-          builder: (_) => AlertDialog(
+          barrierDismissible: false,
+          useRootNavigator: true,
+          builder: (ctx) => AlertDialog(
             title: const Text('Supprimer ce calcul ?'),
             content: const Text('Cette action est irréversible.'),
             actions: [
               TextButton(
-                  onPressed: () => Navigator.pop(context, false),
+                  onPressed: () =>
+                      Navigator.of(ctx, rootNavigator: true).pop(false),
                   child: const Text('Annuler')),
               FilledButton(
-                  onPressed: () => Navigator.pop(context, true),
+                  onPressed: () =>
+                      Navigator.of(ctx, rootNavigator: true).pop(true),
                   child: const Text('Supprimer')),
             ],
           ),
         ) ??
         false;
+
+    if (!_isActive) return;
     if (ok) await _delete(id);
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: buildSmartAppBar(
-        context,
-        'Admin',
-        actions: [
-          IconButton(
-            tooltip: 'Tout développer',
-            onPressed: _items.isEmpty ? null : _expandAll,
-            icon: const Icon(Icons.unfold_more),
-          ),
-          IconButton(
-            tooltip: 'Tout réduire',
-            onPressed: _items.isEmpty ? null : _collapseAll,
-            icon: const Icon(Icons.unfold_less),
-          ),
-          IconButton(
-            tooltip: 'Rafraîchir',
-            onPressed: _load,
-            icon: const Icon(Icons.refresh),
-          ),
-        ],
+    return PopScope(
+      canPop: true,
+      onPopInvoked: (didPop) async {
+        if (didPop) return;
+        final nav = Navigator.of(context);
+        if (nav.canPop()) {
+          nav.pop();
+        } else {
+          if (mounted) context.go('/'); // fallback si pile vide
+        }
+      },
+      child: Scaffold(
+        appBar: buildSmartAppBar(
+          context,
+          'Admin',
+          actions: [
+            IconButton(
+              tooltip: 'Tout développer',
+              onPressed: _items.isEmpty ? null : _expandAll,
+              icon: const Icon(Icons.unfold_more),
+            ),
+            IconButton(
+              tooltip: 'Tout réduire',
+              onPressed: _items.isEmpty ? null : _collapseAll,
+              icon: const Icon(Icons.unfold_less),
+            ),
+            IconButton(
+              tooltip: 'Rafraîchir',
+              onPressed: _load,
+              icon: const Icon(Icons.refresh),
+            ),
+          ],
+        ),
+        body: _buildBody(),
       ),
-      body: _buildBody(),
     );
   }
 
@@ -559,7 +692,7 @@ class _HistoryItem extends StatelessWidget {
                         gridDelegate:
                             const SliverGridDelegateWithMaxCrossAxisExtent(
                           maxCrossAxisExtent: 220,
-                          childAspectRatio: 1.6,
+                          childAspectRatio: 1.25, // <- plus haut (anti-overflow)
                           crossAxisSpacing: 10,
                           mainAxisSpacing: 10,
                         ),
@@ -603,6 +736,60 @@ class _HistoryItem extends StatelessWidget {
                             color: const Color(0xFF22C55E),
                             icon: Icons.battery_charging_full,
                           ),
+
+                          // Ajouts alignés sur page.tsx
+                          if (data.equipements?.onduleur != null)
+                            _MetricCard(
+                              label: 'Onduleur',
+                              value: (data.equipements!.onduleur!.puissanceW !=
+                                      null)
+                                  ? formatPower(
+                                      data.equipements!.onduleur!.puissanceW!)
+                                  : data.equipements!.onduleur!.modele,
+                              color: const Color(0xFFFFA000),
+                              icon: Icons.bolt_outlined,
+                            ),
+                          if (data.equipements?.regulateur != null)
+                            _MetricCard(
+                              label: 'Régulateur',
+                              value: (data.equipements!.regulateur!.courantA !=
+                                      null)
+                                  ? formatCurrent(
+                                      data.equipements!.regulateur!.courantA!)
+                                  : data.equipements!.regulateur!.modele,
+                              color: const Color(0xFF8B5CF6),
+                              icon: Icons.settings_input_component,
+                            ),
+                          if (data.topologiePv != null || data.nbPvSerie != null)
+                            _MetricCard(
+                              label: 'Topologie PV',
+                              value: data.topologiePv ??
+                                  '${data.nbPvSerie ?? "?"}S${data.nbPvParallele ?? "?"}P',
+                              color: const Color(0xFF3B82F6),
+                              icon: Icons.sunny,
+                            ),
+                          if (data.topologieBatterie != null ||
+                              data.nbBattSerie != null)
+                            _MetricCard(
+                              label: 'Topologie Batteries',
+                              value: data.topologieBatterie ??
+                                  '${data.nbBattSerie ?? "?"}S${data.nbBattParallele ?? "?"}P',
+                              color: const Color(0xFF10B981),
+                              icon: Icons.battery_charging_full_outlined,
+                            ),
+                          if (data.longueurCableGlobalM != null ||
+                              data.prixCableGlobal != null)
+                            _MetricCard(
+                              label: 'Câblage',
+                              value: [
+                                if (data.longueurCableGlobalM != null)
+                                  formatLength(data.longueurCableGlobalM!),
+                                if (data.prixCableGlobal != null)
+                                  formatPrice(data.prixCableGlobal!)
+                              ].join('\n'),
+                              color: const Color(0xFF9CA3AF),
+                              icon: Icons.cable_outlined,
+                            ),
                         ],
                       ),
                     ),
@@ -700,9 +887,11 @@ class _MetricCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return DecoratedBox(
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-            colors: [color.withOpacity(.12), color.withOpacity(.22)]),
-        border: Border.all(color: color.withOpacity(.25)),
+        gradient: LinearGradient(colors: [
+          color.withValues(alpha: 0.12),
+          color.withValues(alpha: 0.22),
+        ]),
+        border: Border.all(color: color.withValues(alpha: 0.25)),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Center(
@@ -807,6 +996,34 @@ class _InputsGrid extends StatelessWidget {
           bg: const Color(0xFFEFF6FF)),
     ];
 
+    // Champs optionnels (alignés Next.js)
+    if (entree.hSolaire != null) {
+      tiles.add(_InputTile(
+        icon: Icons.wb_sunny_outlined,
+        label: 'Irradiation',
+        value: '${entree.hSolaire!.toStringAsFixed(2)} kWh/m²/j',
+        bg: const Color(0xFFFFF7ED),
+      ));
+    }
+    if (entree.hVersToit != null) {
+      tiles.add(_InputTile(
+        icon: Icons.height,
+        label: 'Hauteur vers le toit',
+        value: '${_nf.format(entree.hVersToit)} m',
+        bg: const Color(0xFFEFF6FF),
+        hint:
+            'Longueur câble estimée ≈ ${((entree.hVersToit! * 2) * 1.2).toStringAsFixed(1)} m',
+      ));
+    }
+    if (entree.prioriteSelection != null) {
+      tiles.add(_InputTile(
+        icon: Icons.tune,
+        label: 'Stratégie de sélection',
+        value: humanStrategy(entree.prioriteSelection),
+        bg: const Color(0xFFF3E8FF),
+      ));
+    }
+
     return GridView(
       physics: const NeverScrollableScrollPhysics(),
       shrinkWrap: true,
@@ -822,15 +1039,19 @@ class _InputsGrid extends StatelessWidget {
 }
 
 class _InputTile extends StatelessWidget {
-  const _InputTile(
-      {required this.icon,
-      required this.label,
-      required this.value,
-      required this.bg});
+  const _InputTile({
+    required this.icon,
+    required this.label,
+    required this.value,
+    required this.bg,
+    this.hint,
+  });
+
   final IconData icon;
   final String label;
   final String value;
   final Color bg;
+  final String? hint;
 
   @override
   Widget build(BuildContext context) {
@@ -865,6 +1086,14 @@ class _InputTile extends StatelessWidget {
                       style: const TextStyle(
                           fontWeight: FontWeight.w700,
                           color: Color(0xFF111827))),
+                  if (hint != null) ...[
+                    const SizedBox(height: 2),
+                    Text(hint!,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                            fontSize: 11, color: Color(0xFF6B7280))),
+                  ],
                 ]),
           ),
         ],
@@ -918,7 +1147,7 @@ class _EquipmentsGrid extends StatelessWidget {
       itemCount: cards.length,
       gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
         maxCrossAxisExtent: 320,
-        childAspectRatio: 1.6,
+        childAspectRatio: 0.95, // <- beaucoup plus haut (anti-overflow)
         crossAxisSpacing: 10,
         mainAxisSpacing: 10,
       ),
@@ -944,9 +1173,11 @@ class _EquipCard extends StatelessWidget {
         formatPrice(detail.prixUnitaire, currency: detail.devise ?? 'Ar');
     return DecoratedBox(
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-            colors: [color.withOpacity(.08), color.withOpacity(.16)]),
-        border: Border.all(color: color.withOpacity(.25)),
+        gradient: LinearGradient(colors: [
+          color.withValues(alpha: 0.08),
+          color.withValues(alpha: 0.16),
+        ]),
+        border: Border.all(color: color.withValues(alpha: 0.25)),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Padding(
@@ -973,6 +1204,22 @@ class _EquipCard extends StatelessWidget {
             _kv('Capacité', '${_nf.format(detail.capaciteAh)} Ah'),
           if (detail.tensionV != null)
             _kv('Tension', formatVoltage(detail.tensionV!)),
+
+          // Nouveaux champs
+          if (detail.marque != null) _kv('Marque', detail.marque!),
+          if (detail.nomCommercial != null)
+            _kv('Nom commercial', detail.nomCommercial!),
+          if (detail.courantA != null)
+            _kv('Courant', formatCurrent(detail.courantA!)),
+          if (detail.sectionMm2 != null || detail.ampaciteA != null)
+            _kv(
+              'Section / Ampacité',
+              '${detail.sectionMm2 != null ? '${_nf.format(detail.sectionMm2)} mm²' : '—'} · '
+              '${detail.ampaciteA != null ? formatCurrent(detail.ampaciteA!) : '—'}',
+            ),
+          if (detail.vmpV != null) _kv('Vmp', formatVoltage(detail.vmpV!)),
+          if (detail.vocV != null) _kv('Voc', formatVoltage(detail.vocV!)),
+
           _kv('Prix unitaire', price, strong: true),
           const Spacer(),
           Text(
