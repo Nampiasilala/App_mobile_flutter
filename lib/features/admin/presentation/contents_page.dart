@@ -28,14 +28,18 @@ class HelpContent {
   });
 
   factory HelpContent.fromJson(Map<String, dynamic> j) {
+    String? _asStr(dynamic v) => v == null ? null : v.toString();
+    DateTime? _asDate(dynamic v) =>
+        v == null ? null : DateTime.tryParse(v.toString());
+
     return HelpContent(
-      id: j['id'] as int?,
-      key: j['key']?.toString() ?? '',
-      title: j['title']?.toString() ?? '',
-      bodyHtml: j['body_html']?.toString() ?? '',
+      id: j['id'] is int ? j['id'] as int : int.tryParse('${j['id']}'),
+      key: _asStr(j['key']) ?? '',
+      title: _asStr(j['title']) ?? '',
+      bodyHtml: _asStr(j['body_html']) ?? '',
       isActive: j['is_active'] == true,
-      createdAt: j['created_at'] != null ? DateTime.tryParse(j['created_at']) : null,
-      updatedAt: j['updated_at'] != null ? DateTime.tryParse(j['updated_at']) : null,
+      createdAt: _asDate(j['created_at']),
+      updatedAt: _asDate(j['updated_at']),
     );
   }
 }
@@ -66,6 +70,7 @@ class _PredefField {
   });
 }
 
+// Aligne avec la version Web (ajout priorite_selection & h_vers_toit)
 const _predefs = <_PredefField>[
   _PredefField(
     key: 'e_jour',
@@ -116,6 +121,18 @@ const _predefs = <_PredefField>[
         "Tension nominale du parc de batteries.\n\nOptions :\n• 12V : Petites installations (camping-car, abri)\n• 24V : Installations moyennes (maison secondaire)\n• 48V : Grandes installations (maison principale)\n\nAvantage 48V : Moins de pertes, câbles plus fins, meilleur rendement.",
   ),
   _PredefField(
+    key: 'priorite_selection',
+    title: 'Stratégie de sélection',
+    description: 'Règle de choix des équipements',
+    unit: '',
+    icon: Icons.tune, // ✅ remplace l'icône inexistante rule_settings_outlined
+    color: Color(0xFF8B5CF6),
+    category: 'Configuration',
+    placeholder: '',
+    defaultHelp:
+        "Stratégie appliquée à la sélection des équipements modulaires (panneaux, batteries).\n\n• Coût minimal (défaut) : minimise le coût total.\n• Nombre minimal : minimise le nombre d’unités.\n\nOn respecte d’abord le surdimensionnement maximal. Si aucune option ne respecte ce seuil, on prend la surdimension minimale puis on applique la stratégie.",
+  ),
+  _PredefField(
     key: 'localisation',
     title: 'Localisation',
     description: 'Position géographique',
@@ -138,6 +155,18 @@ const _predefs = <_PredefField>[
     placeholder: 'Ex: 4.5',
     defaultHelp:
         "Énergie solaire reçue par m² et par jour.\n\nValeurs typiques : 2.5 à 5.5 kWh/m²/j selon la région.\n\nNote : Cette valeur peut être remplie automatiquement selon la localisation.",
+  ),
+  _PredefField(
+    key: 'h_vers_toit',
+    title: 'Hauteur vers le toit',
+    description: 'Distance verticale pour estimer les câbles',
+    unit: 'm',
+    icon: Icons.straighten_outlined,
+    color: Color(0xFFF59E0B),
+    category: 'Environnement',
+    placeholder: 'Ex: 10',
+    defaultHelp:
+        "Hauteur verticale (du local technique au toit) utilisée pour estimer la longueur totale de câble.\n\nFormule : H × 2 × 1,2 (aller + retour + 20% de mou).\n\nSaisissez une valeur positive (en mètres).",
   ),
 ];
 
@@ -299,81 +328,81 @@ class _ContentsPageState extends ConsumerState<ContentsPage> {
       byCat.putIfAbsent(f.category, () => []).add(f);
     }
 
+    final list = ListView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      padding: const EdgeInsets.all(16),
+      children: [
+        const _TitleRow(),
+        const SizedBox(height: 12),
+
+        if (st.error != null)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: _ErrorBanner(
+              message: st.error!,
+              onRetry: ctrl.load,
+            ),
+          ),
+
+        // Liste simple des cartes par catégorie
+        for (final entry in byCat.entries) ...[
+          _CategoryHeader(entry.key),
+          const SizedBox(height: 8),
+          for (final f in entry.value) ...[
+            _FieldCard(
+              field: f,
+              configured: st.items.any((c) => c.key == f.key),
+              onEdit: () {
+                setState(() {
+                  _editing = f;
+                  _editingExisting = st.items.firstWhere(
+                    (c) => c.key == f.key,
+                    orElse: () => HelpContent(
+                      key: f.key,
+                      title: f.title,
+                      bodyHtml: _textToHtml(f.defaultHelp),
+                      isActive: true,
+                    ),
+                  );
+                });
+                _openEditSheet(context, ctrl);
+              },
+              onPreview: st.items.any((c) => c.key == f.key)
+                  ? () {
+                      final c = st.items.firstWhere((e) => e.key == f.key);
+                      _openPreviewDialog(context, c, f);
+                    }
+                  : null,
+            ),
+            const SizedBox(height: 12),
+          ],
+          const SizedBox(height: 8),
+        ],
+      ],
+    );
+
     return Scaffold(
       appBar: buildSmartAppBar(context, 'Aide / Contenus'),
       body: Stack(
         children: [
-          ListView(
-            padding: const EdgeInsets.all(16),
-            children: [
-              const _TitleRow(),
-              const SizedBox(height: 12),
-
-              if (st.error != null)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: _ErrorBanner(
-                    message: st.error!,
-                    onRetry: ctrl.load,
-                  ),
-                ),
-
-              // Liste simple des cartes par catégorie
-              for (final entry in byCat.entries) ...[
-                _CategoryHeader(entry.key),
-                const SizedBox(height: 8),
-                for (final f in entry.value) ...[
-                  _FieldCard(
-                    field: f,
-                    configured: st.items.any((c) => c.key == f.key),
-                    onEdit: () {
-                      setState(() {
-                        _editing = f;
-                        _editingExisting = st.items.firstWhere(
-                          (c) => c.key == f.key,
-                          orElse: () => HelpContent(
-                            key: f.key,
-                            title: f.title,
-                            bodyHtml: _textToHtml(f.defaultHelp),
-                            isActive: true,
-                          ),
-                        );
-                      });
-                      _openEditSheet(context, ctrl);
-                    },
-                    onPreview: st.items.any((c) => c.key == f.key)
-                        ? () {
-                            final c = st.items.firstWhere((e) => e.key == f.key);
-                            _openPreviewDialog(context, c, f);
-                          }
-                        : null,
-                  ),
-                  const SizedBox(height: 12),
-                ],
-                const SizedBox(height: 8),
-              ],
-            ],
-          ),
-
+          RefreshIndicator(onRefresh: ctrl.load, child: list),
           if (st.loading)
-            const Positioned.fill(
-              child: _FullScreenLoader(label: 'Chargement…'),
-            ),
+            const Positioned.fill(child: _FullScreenLoader(label: 'Chargement…')),
           if (st.saving)
-            const Positioned.fill(
-              child: _FullScreenLoader(label: 'Sauvegarde…'),
-            ),
+            const Positioned.fill(child: _FullScreenLoader(label: 'Sauvegarde…')),
         ],
       ),
     );
   }
 
-  Future<void> _openEditSheet(BuildContext context, _ContentsController ctrl) async {
+  Future<void> _openEditSheet(
+      BuildContext context, _ContentsController ctrl) async {
     if (_editing == null || _editingExisting == null) return;
     final field = _editing!;
     final ex = _editingExisting!;
 
-    final titleCtrl = TextEditingController(text: ex.title.isNotEmpty ? ex.title : field.title);
+    final titleCtrl =
+        TextEditingController(text: ex.title.isNotEmpty ? ex.title : field.title);
     final bodyCtrl = TextEditingController(
       text: ex.bodyHtml.isNotEmpty ? _htmlToText(ex.bodyHtml) : field.defaultHelp,
     );
@@ -382,6 +411,7 @@ class _ContentsPageState extends ConsumerState<ContentsPage> {
     await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
+      useSafeArea: true,
       showDragHandle: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
@@ -389,118 +419,124 @@ class _ContentsPageState extends ConsumerState<ContentsPage> {
       builder: (ctx) {
         return StatefulBuilder(
           builder: (ctx, setModalState) {
-            return Padding(
-              padding: EdgeInsets.only(
-                left: 16,
-                right: 16,
-                bottom: 16 + MediaQuery.of(ctx).viewInsets.bottom,
-                top: 8,
-              ),
-              child: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                ex.id == null ? 'Configurer' : 'Modifier',
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.w700,
-                                  fontSize: 16,
+            final maxHeight = MediaQuery.of(ctx).size.height * 0.9;
+            return ConstrainedBox(
+              constraints: BoxConstraints(maxHeight: maxHeight),
+              child: Padding(
+                padding: EdgeInsets.only(
+                  left: 16,
+                  right: 16,
+                  bottom: 16 + MediaQuery.of(ctx).viewInsets.bottom,
+                  top: 8,
+                ),
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  ex.id == null ? 'Configurer' : 'Modifier',
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 16,
+                                  ),
                                 ),
-                              ),
-                              Text(
-                                '${field.title} (${field.key})',
-                                style: const TextStyle(
-                                  color: Color(0xFF64748B),
-                                  fontSize: 14,
+                                Text(
+                                  '${field.title} (${field.key})',
+                                  style: const TextStyle(
+                                    color: Color(0xFF64748B),
+                                    fontSize: 14,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
                                 ),
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ],
-                          ),
-                        ),
-                        IconButton(
-                          onPressed: () => Navigator.of(ctx).pop(),
-                          icon: const Icon(Icons.close),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: titleCtrl,
-                      decoration: const InputDecoration(
-                        labelText: 'Titre affiché',
-                        border: OutlineInputBorder(),
-                        isDense: true,
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    TextField(
-                      controller: bodyCtrl,
-                      minLines: 6,
-                      maxLines: 10,
-                      decoration: const InputDecoration(
-                        labelText: 'Explication',
-                        helperText: 'Les sauts de ligne seront convertis en HTML',
-                        helperMaxLines: 2,
-                        border: OutlineInputBorder(),
-                        alignLabelWithHint: true,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        Switch(
-                          value: isActive,
-                          onChanged: (v) => setModalState(() => isActive = v),
-                        ),
-                        const SizedBox(width: 8),
-                        const Text('Contenu actif'),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    FilledButton.icon(
-                      icon: const Icon(Icons.save),
-                      label: const Text('Enregistrer'),
-                      onPressed: () async {
-                        final title = titleCtrl.text.trim();
-                        final bodyText = bodyCtrl.text.trim();
-                        if (title.isEmpty || bodyText.isEmpty) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Titre et texte requis')),
-                          );
-                          return;
-                        }
-                        try {
-                          await ctrl.save(
-                            key: field.key,
-                            title: title,
-                            bodyText: bodyText,
-                            isActive: isActive,
-                          );
-                          if (!mounted) return;
-                          Navigator.of(ctx).pop();
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(ex.id == null ? 'Contenu créé' : 'Contenu mis à jour'),
+                              ],
                             ),
-                          );
-                        } catch (e) {
-                          if (!mounted) return;
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('Échec: $e')),
-                          );
-                        }
-                      },
-                    ),
-                    const SizedBox(height: 8),
-                  ],
+                          ),
+                          IconButton(
+                            onPressed: () => Navigator.of(ctx).pop(),
+                            icon: const Icon(Icons.close),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: titleCtrl,
+                        decoration: const InputDecoration(
+                          labelText: 'Titre affiché',
+                          border: OutlineInputBorder(),
+                          isDense: true,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      TextField(
+                        controller: bodyCtrl,
+                        minLines: 6,
+                        maxLines: 10,
+                        decoration: const InputDecoration(
+                          labelText: 'Explication',
+                          helperText: 'Les sauts de ligne seront convertis en HTML',
+                          helperMaxLines: 2,
+                          border: OutlineInputBorder(),
+                          alignLabelWithHint: true,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Switch(
+                            value: isActive,
+                            onChanged: (v) => setModalState(() => isActive = v),
+                          ),
+                          const SizedBox(width: 8),
+                          const Text('Contenu actif'),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      FilledButton.icon(
+                        icon: const Icon(Icons.save),
+                        label: const Text('Enregistrer'),
+                        onPressed: () async {
+                          final title = titleCtrl.text.trim();
+                          final bodyText = bodyCtrl.text.trim();
+                          if (title.isEmpty || bodyText.isEmpty) {
+                            ScaffoldMessenger.of(ctx).showSnackBar(
+                              const SnackBar(content: Text('Titre et texte requis')),
+                            );
+                            return;
+                          }
+                          try {
+                            await ctrl.save(
+                              key: field.key,
+                              title: title,
+                              bodyText: bodyText,
+                              isActive: isActive,
+                            );
+                            if (!mounted) return;
+                            Navigator.of(ctx).pop();
+                            ScaffoldMessenger.of(ctx).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  ex.id == null ? 'Contenu créé' : 'Contenu mis à jour',
+                                ),
+                              ),
+                            );
+                          } catch (e) {
+                            if (!mounted) return;
+                            ScaffoldMessenger.of(ctx).showSnackBar(
+                              SnackBar(content: Text('Échec: $e')),
+                            );
+                          }
+                        },
+                      ),
+                      const SizedBox(height: 8),
+                    ],
+                  ),
                 ),
               ),
             );
@@ -544,10 +580,10 @@ class _TitleRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Row(
-      children: [
-        const Icon(Icons.description_outlined, color: Color(0xFF2563EB), size: 20),
-        const SizedBox(width: 8),
-        const Expanded(
+      children: const [
+        Icon(Icons.description_outlined, color: Color(0xFF2563EB), size: 20),
+        SizedBox(width: 8),
+        Expanded(
           child: Text(
             'Gestion des notices',
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
@@ -683,9 +719,9 @@ class _FieldCard extends StatelessWidget {
                 Expanded(
                   child: OutlinedButton.icon(
                     onPressed: onEdit,
-                    icon: Icon(Icons.edit, size: 16),
-                    label: Text(
-                      configured ? 'Modifier' : 'Configurer',
+                    icon: const Icon(Icons.edit, size: 16),
+                    label: const Text(
+                      'Modifier',
                       style: TextStyle(fontSize: 13),
                     ),
                     style: OutlinedButton.styleFrom(
