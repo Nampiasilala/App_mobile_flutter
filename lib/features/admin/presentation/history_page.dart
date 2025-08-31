@@ -1111,50 +1111,61 @@ class _EquipmentsGrid extends StatelessWidget {
     final cards = <Widget>[
       if (eq.panneau != null)
         _EquipCard(
-            title: 'Panneau solaire',
-            color: const Color(0xFF2563EB),
-            detail: eq.panneau!,
-            extra: '—'),
+          title: 'Panneau solaire',
+          color: const Color(0xFF2563EB),
+          detail: eq.panneau!,
+          extra: '—',
+        ),
       if (eq.batterie != null)
         _EquipCard(
-            title: 'Batterie',
-            color: const Color(0xFF16A34A),
-            detail: eq.batterie!,
-            extra: '—'),
+          title: 'Batterie',
+          color: const Color(0xFF16A34A),
+          detail: eq.batterie!,
+          extra: '—',
+        ),
       if (eq.regulateur != null)
         _EquipCard(
-            title: 'Régulateur',
-            color: const Color(0xFF7C3AED),
-            detail: eq.regulateur!,
-            extra: '—'),
+          title: 'Régulateur',
+          color: const Color(0xFF7C3AED),
+          detail: eq.regulateur!,
+          extra: '—',
+        ),
       if (eq.onduleur != null)
         _EquipCard(
-            title: 'Onduleur',
-            color: const Color(0xFFF59E0B),
-            detail: eq.onduleur!,
-            extra: '—'),
+          title: 'Onduleur',
+          color: const Color(0xFFF59E0B),
+          detail: eq.onduleur!,
+          extra: '—',
+        ),
       if (eq.cable != null)
         _EquipCard(
-            title: 'Câble',
-            color: const Color(0xFF6B7280),
-            detail: eq.cable!,
-            extra: 'Selon installation'),
+          title: 'Câble',
+          color: const Color(0xFF6B7280),
+          detail: eq.cable!,
+          extra: 'Selon installation',
+        ),
     ];
 
-    return GridView.builder(
-      physics: const NeverScrollableScrollPhysics(),
-      shrinkWrap: true,
-      itemCount: cards.length,
-      gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-        maxCrossAxisExtent: 320,
-        childAspectRatio: 0.95, // <- beaucoup plus haut (anti-overflow)
-        crossAxisSpacing: 10,
-        mainAxisSpacing: 10,
-      ),
-      itemBuilder: (_, i) => cards[i],
+    // Wrap responsive : 1 / 2 / 3 colonnes selon la largeur
+    return LayoutBuilder(
+      builder: (context, c) {
+        final w = c.maxWidth;
+        final cols = w >= 980 ? 3 : (w >= 640 ? 2 : 1);
+        final spacing = 10.0;
+        final colWidth = (w - spacing * (cols - 1)) / cols;
+
+        return Wrap(
+          spacing: spacing,
+          runSpacing: spacing,
+          children: cards
+              .map((card) => SizedBox(width: colWidth, child: card))
+              .toList(),
+        );
+      },
     );
   }
 }
+
 
 class _EquipCard extends StatelessWidget {
   const _EquipCard(
@@ -1168,33 +1179,38 @@ class _EquipCard extends StatelessWidget {
   final String extra;
 
   @override
-  Widget build(BuildContext context) {
-    String price =
-        formatPrice(detail.prixUnitaire, currency: detail.devise ?? 'Ar');
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(colors: [
-          color.withValues(alpha: 0.08),
-          color.withValues(alpha: 0.16),
-        ]),
-        border: Border.all(color: color.withValues(alpha: 0.25)),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child:
-            Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+Widget build(BuildContext context) {
+  final price =
+      formatPrice(detail.prixUnitaire, currency: detail.devise ?? 'Ar');
+
+  return DecoratedBox(
+    decoration: BoxDecoration(
+      gradient: LinearGradient(colors: [
+        color.withValues(alpha: 0.08),
+        color.withValues(alpha: 0.16),
+      ]),
+      border: Border.all(color: color.withValues(alpha: 0.25)),
+      borderRadius: BorderRadius.circular(12),
+    ),
+    child: Padding(
+      padding: const EdgeInsets.all(12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
           Row(children: [
             Icon(Icons.settings, color: color),
             const SizedBox(width: 6),
             Expanded(
-              child: Text(title,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontWeight: FontWeight.w700)),
+              child: Text(
+                title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(fontWeight: FontWeight.w700),
+              ),
             ),
           ]),
           const SizedBox(height: 8),
+
           _kv('Modèle', detail.modele),
           if (detail.reference != null)
             _kv('Référence', detail.reference!, mono: true),
@@ -1204,8 +1220,6 @@ class _EquipCard extends StatelessWidget {
             _kv('Capacité', '${_nf.format(detail.capaciteAh)} Ah'),
           if (detail.tensionV != null)
             _kv('Tension', formatVoltage(detail.tensionV!)),
-
-          // Nouveaux champs
           if (detail.marque != null) _kv('Marque', detail.marque!),
           if (detail.nomCommercial != null)
             _kv('Nom commercial', detail.nomCommercial!),
@@ -1220,18 +1234,24 @@ class _EquipCard extends StatelessWidget {
           if (detail.vmpV != null) _kv('Vmp', formatVoltage(detail.vmpV!)),
           if (detail.vocV != null) _kv('Voc', formatVoltage(detail.vocV!)),
 
+          const SizedBox(height: 6),
           _kv('Prix unitaire', price, strong: true),
-          const Spacer(),
-          Text(
-            extra,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
-          ),
-        ]),
+
+          if (extra.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            Text(
+              extra,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
+            ),
+          ],
+        ],
       ),
-    );
-  }
+    ),
+  );
+}
+
 
   Widget _kv(String k, String v, {bool strong = false, bool mono = false}) {
     return Padding(
