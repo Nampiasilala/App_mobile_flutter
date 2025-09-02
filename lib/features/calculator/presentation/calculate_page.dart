@@ -1,3 +1,6 @@
+// ============================================================================
+// lib/features/calculator/presentation/calculate_page.dart  (PROD CLEAN)
+// ============================================================================
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -7,6 +10,8 @@ import '../../../core/ui/smart_app_bar.dart';
 import '../../calculator/domain/calculator_models.dart';
 import '../../calculator/providers.dart';
 import '../pdf/pdf_report.dart';
+import '../widgets/help_widgets.dart';
+import '../providers/help_providers.dart';
 
 class CalculatePage extends ConsumerStatefulWidget {
   const CalculatePage({super.key});
@@ -24,7 +29,7 @@ class _CalculatePageState extends ConsumerState<CalculatePage> {
   final _nauto = TextEditingController(text: '1');
   final _loc = TextEditingController();
   final _hSolaire = TextEditingController(); // rempli auto
-  final _hVersToit = TextEditingController(text: '10'); // défaut 10 m
+  final _hVersToit = TextEditingController(text: '10');
 
   // Notifiers
   final _vbat = ValueNotifier<num>(24);
@@ -50,9 +55,12 @@ class _CalculatePageState extends ConsumerState<CalculatePage> {
   void initState() {
     super.initState();
     _loc.addListener(_onLocationChanged);
-    _pmax.addListener(_onPmaxChanged); // 👉 met à jour V_batterie en mode auto
-    // Première suggestion au démarrage
-    WidgetsBinding.instance.addPostFrameCallback((_) => _onPmaxChanged());
+    _pmax.addListener(_onPmaxChanged);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _onPmaxChanged();
+      // Pré-charger les aides (sans affichage)
+      ref.read(calculatorHelpProvider);
+    });
   }
 
   @override
@@ -76,14 +84,14 @@ class _CalculatePageState extends ConsumerState<CalculatePage> {
 
   int _suggestBatteryVoltage(num pmax) {
     final v = pmax.toDouble();
-    if (!v.isFinite || v <= 0) return 24; // neutre par défaut
+    if (!v.isFinite || v <= 0) return 24;
     if (v <= 800) return 12;
     if (v <= 2000) return 24;
     return 48;
   }
 
   void _onPmaxChanged() {
-    if (_manualBattery) return; // l'utilisateur a forcé
+    if (_manualBattery) return;
     final p = double.tryParse(_pmax.text) ?? 0;
     final suggested = _suggestBatteryVoltage(p);
     if (_vbat.value != suggested) _vbat.value = suggested;
@@ -100,14 +108,14 @@ class _CalculatePageState extends ConsumerState<CalculatePage> {
       if (_loc.text.trim().length >= 3) {
         _searchLocation(_loc.text);
       } else {
-        setState(() => _suggestions = []);
+        if (mounted) setState(() => _suggestions = []);
       }
     });
   }
 
   Future<void> _searchLocation(String query) async {
     if (query.trim().isEmpty) {
-      setState(() => _suggestions = []);
+      if (mounted) setState(() => _suggestions = []);
       return;
     }
     try {
@@ -148,8 +156,7 @@ class _CalculatePageState extends ConsumerState<CalculatePage> {
       );
     } catch (e) {
       if (mounted) {
-        _showSnackBar("Impossible de récupérer l'irradiation: $e",
-            isError: true);
+        _showSnackBar("Impossible de récupérer l'irradiation: $e", isError: true);
       }
     } finally {
       if (mounted) setState(() => _isLoadingIrradiation = false);
@@ -226,12 +233,9 @@ class _CalculatePageState extends ConsumerState<CalculatePage> {
       setState(() {
         _fullResult = result;
         _resultJson = {
-          'Puissance totale (W)':
-              result.puissance_totale.toDouble().toStringAsFixed(0),
-          'Capacité batterie (Wh)':
-              result.capacite_batterie.toDouble().toStringAsFixed(0),
-          'Bilan énergétique annuel (kWh)':
-              result.bilan_energetique_annuel.toDouble().toStringAsFixed(2),
+          'Puissance totale (W)': result.puissance_totale.toDouble().toStringAsFixed(0),
+          'Capacité batterie (Wh)': result.capacite_batterie.toDouble().toStringAsFixed(0),
+          'Bilan énergétique annuel (kWh)': result.bilan_energetique_annuel.toDouble().toStringAsFixed(2),
           'Coût total (Ar)': _formatPrice(result.cout_total),
           'Nombre de panneaux': result.nombre_panneaux.toString(),
           'Nombre de batteries': result.nombre_batteries.toString(),
@@ -250,16 +254,12 @@ class _CalculatePageState extends ConsumerState<CalculatePage> {
 
   /* ------------------------------ PDF export ----------------------------- */
 
-  /* ------------------------------ PDF export ----------------------------- */
-
   Future<void> _downloadPdf() async {
     final res = ref.read(lastResultProvider);
     if (res == null) return;
 
     try {
-      // ✅ Création de l'objet PDFData pour le nouveau générateur
       final pdfData = PDFData(
-        // Données de résultat (depuis CalculationResult)
         result: {
           'puissance_totale': res.puissance_totale.toDouble(),
           'capacite_batterie': res.capacite_batterie.toDouble(),
@@ -267,33 +267,17 @@ class _CalculatePageState extends ConsumerState<CalculatePage> {
           'cout_total': res.cout_total.toDouble(),
           'nombre_panneaux': res.nombre_panneaux,
           'nombre_batteries': res.nombre_batteries,
-          
-          // Equipements recommandés
           if (res.equipements_recommandes != null)
             'equipements_recommandes': _buildEquipmentMap(res.equipements_recommandes!),
-          
-          // Topologies
-          if (res.topologie_pv != null)
-            'topologie_pv': res.topologie_pv!,
-          if (res.nb_pv_serie != null)
-            'nb_pv_serie': res.nb_pv_serie!,
-          if (res.nb_pv_parallele != null)
-            'nb_pv_parallele': res.nb_pv_parallele!,
-          if (res.topologie_batterie != null)
-            'topologie_batterie': res.topologie_batterie!,
-          if (res.nb_batt_serie != null)
-            'nb_batt_serie': res.nb_batt_serie!,
-          if (res.nb_batt_parallele != null)
-            'nb_batt_parallele': res.nb_batt_parallele!,
-          
-          // Câblage
-          if (res.longueur_cable_global_m != null)
-            'longueur_cable_global_m': res.longueur_cable_global_m!,
-          if (res.prix_cable_global != null)
-            'prix_cable_global': res.prix_cable_global!,
+          if (res.topologie_pv != null) 'topologie_pv': res.topologie_pv!,
+          if (res.nb_pv_serie != null) 'nb_pv_serie': res.nb_pv_serie!,
+          if (res.nb_pv_parallele != null) 'nb_pv_parallele': res.nb_pv_parallele!,
+          if (res.topologie_batterie != null) 'topologie_batterie': res.topologie_batterie!,
+          if (res.nb_batt_serie != null) 'nb_batt_serie': res.nb_batt_serie!,
+          if (res.nb_batt_parallele != null) 'nb_batt_parallele': res.nb_batt_parallele!,
+          if (res.longueur_cable_global_m != null) 'longueur_cable_global_m': res.longueur_cable_global_m!,
+          if (res.prix_cable_global != null) 'prix_cable_global': res.prix_cable_global!,
         },
-        
-        // Données d'entrée (depuis les contrôleurs de formulaire)
         inputData: {
           'E_jour': double.tryParse(_ejour.text) ?? 0,
           'P_max': double.tryParse(_pmax.text) ?? 0,
@@ -306,35 +290,26 @@ class _CalculatePageState extends ConsumerState<CalculatePage> {
         },
       );
 
-      // ✅ Utilisation du nouveau générateur PDF
       final doc = await buildSolarReport(data: pdfData);
 
-      // ✅ Génération du nom de fichier avec timestamp
       final now = DateTime.now();
       final timestamp = now.millisecondsSinceEpoch;
-      final location = _loc.text.trim().isNotEmpty 
+      final location = _loc.text.trim().isNotEmpty
           ? _loc.text.replaceAll(RegExp(r'[^\w\s-]'), '').replaceAll(' ', '-')
           : 'calcul';
-      final filename = 'dimensionnement-solaire-${now.day.toString().padLeft(2, '0')}-${now.month.toString().padLeft(2, '0')}-${now.year}-$location-$timestamp.pdf';
+      final filename =
+          'dimensionnement-solaire-${now.day.toString().padLeft(2, '0')}-${now.month.toString().padLeft(2, '0')}-${now.year}-$location-$timestamp.pdf';
 
-      await Printing.sharePdf(
-        bytes: await doc.save(),
-        filename: filename,
-      );
-
-      // Message de succès
+      await Printing.sharePdf(bytes: await doc.save(), filename: filename);
       _showSnackBar('Rapport PDF généré avec succès!', isError: false);
-      
     } catch (e) {
       _showSnackBar('Erreur lors de la génération du PDF: $e', isError: true);
     }
   }
 
-  // ✅ Helper pour convertir les équipements en Map
   Map<String, dynamic> _buildEquipmentMap(dynamic equipements) {
     final result = <String, dynamic>{};
-    
-    // Panneau
+
     if (equipements.panneau != null) {
       final p = equipements.panneau!;
       result['panneau'] = {
@@ -345,8 +320,6 @@ class _CalculatePageState extends ConsumerState<CalculatePage> {
         if (p.devise != null) 'devise': p.devise!,
       };
     }
-    
-    // Batterie
     if (equipements.batterie != null) {
       final b = equipements.batterie!;
       result['batterie'] = {
@@ -358,8 +331,6 @@ class _CalculatePageState extends ConsumerState<CalculatePage> {
         if (b.devise != null) 'devise': b.devise!,
       };
     }
-    
-    // Régulateur
     if (equipements.regulateur != null) {
       final r = equipements.regulateur!;
       result['regulateur'] = {
@@ -371,8 +342,6 @@ class _CalculatePageState extends ConsumerState<CalculatePage> {
         if (r.devise != null) 'devise': r.devise!,
       };
     }
-    
-    // Onduleur
     if (equipements.onduleur != null) {
       final o = equipements.onduleur!;
       result['onduleur'] = {
@@ -383,8 +352,6 @@ class _CalculatePageState extends ConsumerState<CalculatePage> {
         if (o.devise != null) 'devise': o.devise!,
       };
     }
-    
-    // Câble
     if (equipements.cable != null) {
       final c = equipements.cable!;
       result['cable'] = {
@@ -394,7 +361,7 @@ class _CalculatePageState extends ConsumerState<CalculatePage> {
         if (c.devise != null) 'devise': c.devise!,
       };
     }
-    
+
     return result;
   }
 
@@ -410,8 +377,7 @@ class _CalculatePageState extends ConsumerState<CalculatePage> {
         action: SnackBarAction(
           label: 'OK',
           textColor: Colors.white,
-          onPressed: () =>
-              ScaffoldMessenger.of(context).hideCurrentSnackBar(),
+          onPressed: () => ScaffoldMessenger.of(context).hideCurrentSnackBar(),
         ),
       ),
     );
@@ -431,9 +397,10 @@ class _CalculatePageState extends ConsumerState<CalculatePage> {
 
   String _formatPrice(num price) {
     final s = price.toStringAsFixed(0);
-    final withSpaces =
-        s.replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
-            (m) => '${m[1]} ');
+    final withSpaces = s.replaceAllMapped(
+      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+      (m) => '${m[1]} ',
+    );
     return '$withSpaces Ar';
   }
 
@@ -448,8 +415,7 @@ class _CalculatePageState extends ConsumerState<CalculatePage> {
         borderRadius: BorderRadius.circular(12),
         borderSide: BorderSide(color: theme.primaryColor, width: 2),
       ),
-      contentPadding:
-          const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       filled: true,
       fillColor: Colors.grey[50],
     );
@@ -474,56 +440,77 @@ class _CalculatePageState extends ConsumerState<CalculatePage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(children: [
-                      Icon(Icons.error_outline,
-                          color: Colors.red[700], size: 20),
-                      const SizedBox(width: 8),
-                      Text('Erreurs de validation',
-                          style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: Colors.red[700])),
-                    ]),
+                    Row(
+                      children: [
+                        Icon(Icons.error_outline, color: Colors.red[700], size: 20),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Erreurs de validation',
+                          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red[700]),
+                        ),
+                      ],
+                    ),
                     const SizedBox(height: 8),
-                    ..._errors.map((e) => Padding(
-                          padding: const EdgeInsets.only(left: 4, top: 4),
-                          child: Text('• $e',
-                              style: TextStyle(color: Colors.red[700])),
-                        )),
+                    ..._errors.map(
+                      (e) => Padding(
+                        padding: const EdgeInsets.only(left: 4, top: 4),
+                        child: Text('• $e', style: TextStyle(color: Colors.red[700])),
+                      ),
+                    ),
                   ],
                 ),
               ),
 
-            /* -------------------------- Section Consommation ------------------------- */
+            // Consommation
             _section(
               title: 'Consommation',
               icon: Icons.flash_on,
               color: Colors.amber,
               children: [
-                _numField(_ejour, 'Consommation journalière (Wh)',
-                    inputDecoration,
-                    help:
-                        "Somme de l'énergie consommée sur 24h"),
+                _numField(
+                  _ejour,
+                  'Consommation journalière (Wh)',
+                  inputDecoration,
+                  help: "Somme de l'énergie consommée sur 24h",
+                  helpKey: 'E_jour',
+                ),
                 const SizedBox(height: 16),
-                _numField(_pmax, 'Puissance max (W)', inputDecoration,
-                    help: 'Pic de puissance simultané'),
+                _numField(
+                  _pmax,
+                  'Puissance max (W)',
+                  inputDecoration,
+                  help: 'Pic de puissance simultané',
+                  helpKey: 'P_max',
+                ),
               ],
             ),
             const SizedBox(height: 20),
 
-            /* --------------------------- Section Configuration ---------------------- */
+            // Configuration
             _section(
               title: 'Configuration',
               icon: Icons.settings,
               color: Colors.purple,
               children: [
-                _numField(_nauto, "Jours d'autonomie", inputDecoration,
-                    help: 'Jours sans soleil couverts'),
+                _numField(
+                  _nauto,
+                  "Jours d'autonomie",
+                  inputDecoration,
+                  help: 'Jours sans soleil couverts',
+                  helpKey: 'N_autonomie',
+                ),
                 const SizedBox(height: 16),
 
-                // --- Tension batterie (auto + manuel)
-                Text('Tension batterie',
-                    style: theme.textTheme.titleSmall
-                        ?.copyWith(fontWeight: FontWeight.w500)),
+                Row(
+                  children: [
+                    Text(
+                      'Tension batterie',
+                      style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w500),
+                    ),
+                    const SizedBox(width: 8),
+                    const SimpleHelpIcon(helpKey: 'V_batterie'),
+                  ],
+                ),
                 const SizedBox(height: 8),
                 ValueListenableBuilder<num>(
                   valueListenable: _vbat,
@@ -540,9 +527,7 @@ class _CalculatePageState extends ConsumerState<CalculatePage> {
                               child: Container(
                                 margin: EdgeInsets.only(right: e == 48 ? 0 : 8),
                                 child: Material(
-                                  color: selected
-                                      ? theme.primaryColor
-                                      : Colors.grey[200],
+                                  color: selected ? theme.primaryColor : Colors.grey[200],
                                   borderRadius: BorderRadius.circular(12),
                                   child: InkWell(
                                     borderRadius: BorderRadius.circular(12),
@@ -556,9 +541,7 @@ class _CalculatePageState extends ConsumerState<CalculatePage> {
                                         '${e}V',
                                         textAlign: TextAlign.center,
                                         style: TextStyle(
-                                          color: selected
-                                              ? Colors.white
-                                              : Colors.grey[700],
+                                          color: selected ? Colors.white : Colors.grey[700],
                                           fontWeight: FontWeight.w600,
                                         ),
                                       ),
@@ -580,11 +563,9 @@ class _CalculatePageState extends ConsumerState<CalculatePage> {
                             style: TextButton.styleFrom(padding: EdgeInsets.zero),
                             onPressed: () {
                               setState(() => _manualBattery = false);
-                              _onPmaxChanged(); // applique la suggestion
+                              _onPmaxChanged();
                             },
-                            child: const Text(
-                              'Revenir au choix automatique (basé sur P_max)',
-                            ),
+                            child: const Text('Revenir au choix automatique (basé sur P_max)'),
                           ),
                       ],
                     );
@@ -592,45 +573,63 @@ class _CalculatePageState extends ConsumerState<CalculatePage> {
                 ),
                 const SizedBox(height: 16),
 
-                // Stratégie de sélection
-                Text('Stratégie de sélection',
-                    style: theme.textTheme.titleSmall
-                        ?.copyWith(fontWeight: FontWeight.w500)),
+                Row(
+                  children: [
+                    Text(
+                      'Stratégie de sélection',
+                      style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w500),
+                    ),
+                    const SizedBox(width: 8),
+                    const SimpleHelpIcon(helpKey: 'priorite_selection'),
+                  ],
+                ),
                 const SizedBox(height: 8),
                 ValueListenableBuilder<String>(
                   valueListenable: _priorite,
-                  builder: (_, value, __) => Row(children: [
-                    Expanded(
-                      child: _choice(
-                        selected: value == 'cout',
-                        label: 'Coût minimal',
-                        onTap: () => _priorite.value = 'cout',
+                  builder: (_, value, __) => Row(
+                    children: [
+                      Expanded(
+                        child: _choice(
+                          selected: value == 'cout',
+                          label: 'Coût minimal',
+                          onTap: () => _priorite.value = 'cout',
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: _choice(
-                        selected: value == 'quantite',
-                        label: 'Nombre minimal',
-                        onTap: () => _priorite.value = 'quantite',
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: _choice(
+                          selected: value == 'quantite',
+                          label: 'Nombre minimal',
+                          onTap: () => _priorite.value = 'quantite',
+                        ),
                       ),
-                    ),
-                  ]),
+                    ],
+                  ),
                 ),
               ],
             ),
             const SizedBox(height: 20),
 
-            /* ----------------------------- Section Environnement -------------------- */
+            // Environnement
             _section(
               title: 'Environnement',
               icon: Icons.location_on,
               color: Colors.green,
               children: [
-                // Localisation + suggestions
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    Row(
+                      children: [
+                        Text(
+                          'Localisation',
+                          style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w500),
+                        ),
+                        const SizedBox(width: 8),
+                        const SimpleHelpIcon(helpKey: 'localisation'),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
                     TextFormField(
                       controller: _loc,
                       decoration: inputDecoration.copyWith(
@@ -641,8 +640,7 @@ class _CalculatePageState extends ConsumerState<CalculatePage> {
                                 height: 20,
                                 child: Padding(
                                   padding: EdgeInsets.all(12),
-                                  child: CircularProgressIndicator(
-                                      strokeWidth: 2),
+                                  child: CircularProgressIndicator(strokeWidth: 2),
                                 ),
                               )
                             : IconButton(
@@ -655,8 +653,7 @@ class _CalculatePageState extends ConsumerState<CalculatePage> {
                       const SizedBox(height: 8),
                       Container(
                         decoration: BoxDecoration(
-                          border:
-                              Border.all(color: Colors.grey[300]!),
+                          border: Border.all(color: Colors.grey[300]!),
                           borderRadius: BorderRadius.circular(12),
                           color: Colors.white,
                         ),
@@ -664,8 +661,7 @@ class _CalculatePageState extends ConsumerState<CalculatePage> {
                           shrinkWrap: true,
                           physics: const NeverScrollableScrollPhysics(),
                           itemCount: _suggestions.length,
-                          separatorBuilder: (_, __) =>
-                              const Divider(height: 1),
+                          separatorBuilder: (_, __) => const Divider(height: 1),
                           itemBuilder: (_, i) {
                             final s = _suggestions[i];
                             return ListTile(
@@ -682,24 +678,40 @@ class _CalculatePageState extends ConsumerState<CalculatePage> {
                 ),
                 const SizedBox(height: 16),
 
-                // Irradiation (disabled)
-                TextFormField(
-                  controller: _hSolaire,
-                  enabled: false,
-                  decoration: inputDecoration.copyWith(
-                    labelText: 'Irradiation (kWh/m²/j)',
-                    helperText:
-                        'Calculée automatiquement à partir de la localisation',
-                    helperStyle: TextStyle(color: Colors.green[600]),
-                  ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Text(
+                          'Irradiation (kWh/m²/j)',
+                          style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w500),
+                        ),
+                        const SizedBox(width: 8),
+                        const SimpleHelpIcon(helpKey: 'H_solaire'),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    TextFormField(
+                      controller: _hSolaire,
+                      enabled: false,
+                      decoration: inputDecoration.copyWith(
+                        labelText: 'Irradiation (kWh/m²/j)',
+                        helperText: 'Calculée automatiquement à partir de la localisation',
+                        helperStyle: TextStyle(color: Colors.green[600]),
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 16),
 
-                // Hauteur vers toit
-                _numField(_hVersToit, 'Hauteur vers le toit (m)',
-                    inputDecoration,
-                    help:
-                        'fil de la maison au point le plus haut du toit'),
+                _numField(
+                  _hVersToit,
+                  'Hauteur vers le toit (m)',
+                  inputDecoration,
+                  help: 'Distance du tableau électrique au point le plus haut du toit',
+                  helpKey: 'H_vers_toit',
+                ),
               ],
             ),
 
@@ -714,23 +726,21 @@ class _CalculatePageState extends ConsumerState<CalculatePage> {
                   backgroundColor: theme.primaryColor,
                   foregroundColor: Colors.white,
                   elevation: 2,
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12)),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
                 icon: _isCalculating
                     ? const SizedBox(
-                        width: 20, height: 20,
+                        width: 20,
+                        height: 20,
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
-                          valueColor:
-                              AlwaysStoppedAnimation<Color>(Colors.white),
+                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                         ),
                       )
                     : const Icon(Icons.calculate),
                 label: Text(
                   _isCalculating ? 'Calcul en cours...' : 'Calculer',
-                  style: const TextStyle(
-                      fontSize: 16, fontWeight: FontWeight.w600),
+                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                 ),
               ),
             ),
@@ -765,60 +775,85 @@ class _CalculatePageState extends ConsumerState<CalculatePage> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-              color: Colors.grey.withOpacity(0.1),
-              spreadRadius: 1,
-              blurRadius: 10,
-              offset: const Offset(0, 2)),
+            color: Colors.grey.withOpacity(0.1),
+            spreadRadius: 1,
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
         ],
       ),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Row(children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Icon(icon, color: color, size: 20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(icon, color: color, size: 20),
+              ),
+              const SizedBox(width: 12),
+              Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            ],
           ),
-          const SizedBox(width: 12),
-          Text(title,
-              style:
-                  const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-        ]),
-        const SizedBox(height: 16),
-        ...children,
-      ]),
+          const SizedBox(height: 16),
+          ...children,
+        ],
+      ),
     );
   }
 
-  Widget _numField(TextEditingController c, String label,
-      InputDecoration deco, {String? help}) {
-    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      TextFormField(
-        controller: c,
-        keyboardType: TextInputType.number,
-        decoration: deco.copyWith(labelText: label),
-        onChanged: (val) {
-          // si l'utilisateur modifie P_max via ce champ, on applique la logique auto
-          if (c == _pmax) _onPmaxChanged();
-        },
-      ),
-      if (help != null) ...[
-        const SizedBox(height: 4),
-        Text(help, style: TextStyle(fontSize: 12, color: Colors.grey[600])),
-      ]
-    ]);
+  /// Champ numérique avec aide dynamique (SimpleHelpIcon)
+  Widget _numField(
+    TextEditingController c,
+    String label,
+    InputDecoration deco, {
+    String? help,
+    String? helpKey,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Text(
+              label,
+              style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w500),
+            ),
+            const SizedBox(width: 8),
+            if (helpKey != null) SimpleHelpIcon(helpKey: helpKey),
+          ],
+        ),
+        const SizedBox(height: 8),
+        TextFormField(
+          controller: c,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          decoration: deco.copyWith(labelText: label),
+          onChanged: (val) {
+            if (c == _pmax) _onPmaxChanged();
+          },
+        ),
+        if (help != null) ...[
+          const SizedBox(height: 4),
+          Text(help, style: TextStyle(fontSize: 12, color: Colors.grey[600])),
+        ],
+      ],
+    );
   }
 
-  Widget _choice({required bool selected, required String label, required VoidCallback onTap}) {
+  Widget _choice({
+    required bool selected,
+    required String label,
+    required VoidCallback onTap,
+  }) {
     return Material(
       color: selected ? Colors.blue : Colors.white,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        side: BorderSide(
-          color: selected ? Colors.blue : Colors.grey.shade300,
-        ),
+        side: BorderSide(color: selected ? Colors.blue : Colors.grey.shade300),
       ),
       child: InkWell(
         onTap: onTap,
@@ -846,27 +881,33 @@ class _CalculatePageState extends ConsumerState<CalculatePage> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-              color: Colors.grey.withOpacity(0.1),
-              spreadRadius: 1,
-              blurRadius: 10,
-              offset: const Offset(0, 2)),
+            color: Colors.grey.withOpacity(0.1),
+            spreadRadius: 1,
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
         ],
       ),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-          const Text('Résultats du Dimensionnement',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-          IconButton(
-            onPressed: _downloadPdf,
-            icon: const Icon(Icons.picture_as_pdf),
-            style: IconButton.styleFrom(
-              backgroundColor: Colors.green[50],
-              foregroundColor: Colors.green[700],
-            ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text('Résultats du Dimensionnement', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              IconButton(
+                onPressed: _downloadPdf,
+                icon: const Icon(Icons.picture_as_pdf),
+                style: IconButton.styleFrom(
+                  backgroundColor: Colors.green[50],
+                  foregroundColor: Colors.green[700],
+                ),
+              ),
+            ],
           ),
-        ]),
-        const SizedBox(height: 16),
-        ..._resultJson!.entries.map((e) => Container(
+          const SizedBox(height: 16),
+          ..._resultJson!.entries.map(
+            (e) => Container(
               margin: const EdgeInsets.only(bottom: 12),
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
@@ -878,98 +919,98 @@ class _CalculatePageState extends ConsumerState<CalculatePage> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Expanded(
-                    child: Text(e.key,
-                        style: const TextStyle(
-                            fontWeight: FontWeight.w500, color: Colors.grey)),
+                    child: Text(
+                      e.key,
+                      style: const TextStyle(fontWeight: FontWeight.w500, color: Colors.grey),
+                    ),
                   ),
                   Text(
                     e.value.toString(),
-                    style: const TextStyle(
-                        fontWeight: FontWeight.bold, fontSize: 16),
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                   ),
                 ],
               ),
-            )),
-        const SizedBox(height: 8),
+            ),
+          ),
+          const SizedBox(height: 8),
 
-        // --- KPI affichés 2 par ligne
-        LayoutBuilder(
-          builder: (context, constraints) {
-            const gap = 10.0;
-            final itemWidth = (constraints.maxWidth - gap) / 2;
+          LayoutBuilder(
+            builder: (context, constraints) {
+              const gap = 10.0;
+              final itemWidth = (constraints.maxWidth - gap) / 2;
 
-            final kpis = <Widget>[
-              if (_fullResult?.equipements_recommandes?.onduleur != null)
-                _kpi('Onduleur',
-                    _fullResult!.equipements_recommandes!.onduleur!.puissance_W !=
-                            null
+              final kpis = <Widget>[
+                if (_fullResult?.equipements_recommandes?.onduleur != null)
+                  _kpi(
+                    'Onduleur',
+                    _fullResult!.equipements_recommandes!.onduleur!.puissance_W != null
                         ? '${_fullResult!.equipements_recommandes!.onduleur!.puissance_W} W'
-                        : (_fullResult!.equipements_recommandes!.onduleur!.modele ?? '—')),
-              if (_fullResult?.equipements_recommandes?.regulateur != null)
-                _kpi(
+                        : (_fullResult!.equipements_recommandes!.onduleur!.modele ?? '—'),
+                  ),
+                if (_fullResult?.equipements_recommandes?.regulateur != null)
+                  _kpi(
                     'Régulateur',
-                    _fullResult!.equipements_recommandes!.regulateur!.courant_A !=
-                            null
+                    _fullResult!.equipements_recommandes!.regulateur!.courant_A != null
                         ? '${_fullResult!.equipements_recommandes!.regulateur!.courant_A} A'
-                        : (_fullResult!.equipements_recommandes!.regulateur!.modele ?? '—')),
-              if (_fullResult?.topologie_pv != null ||
-                  _fullResult?.nb_pv_serie != null ||
-                  _fullResult?.nb_pv_parallele != null)
-                _kpi(
+                        : (_fullResult!.equipements_recommandes!.regulateur!.modele ?? '—'),
+                  ),
+                if (_fullResult?.topologie_pv != null ||
+                    _fullResult?.nb_pv_serie != null ||
+                    _fullResult?.nb_pv_parallele != null)
+                  _kpi(
                     'Topologie PV',
                     _fullResult!.topologie_pv ??
-                        '${_fullResult!.nb_pv_serie ?? "?"}S${_fullResult!.nb_pv_parallele ?? "?"}P'),
-              if (_fullResult?.topologie_batterie != null ||
-                  _fullResult?.nb_batt_serie != null ||
-                  _fullResult?.nb_batt_parallele != null)
-                _kpi(
+                        '${_fullResult!.nb_pv_serie ?? "?"}S${_fullResult!.nb_pv_parallele ?? "?"}P',
+                  ),
+                if (_fullResult?.topologie_batterie != null ||
+                    _fullResult?.nb_batt_serie != null ||
+                    _fullResult?.nb_batt_parallele != null)
+                  _kpi(
                     'Topologie Batteries',
                     _fullResult!.topologie_batterie ??
-                        '${_fullResult!.nb_batt_serie ?? "?"}S${_fullResult!.nb_batt_parallele ?? "?"}P'),
-              if (_fullResult?.longueur_cable_global_m != null ||
-                  _fullResult?.prix_cable_global != null)
-                _kpi(
+                        '${_fullResult!.nb_batt_serie ?? "?"}S${_fullResult!.nb_batt_parallele ?? "?"}P',
+                  ),
+                if (_fullResult?.longueur_cable_global_m != null || _fullResult?.prix_cable_global != null)
+                  _kpi(
                     'Câblage',
                     [
-                      if (_fullResult?.longueur_cable_global_m != null)
-                        '${_fullResult!.longueur_cable_global_m} m',
-                      if (_fullResult?.prix_cable_global != null)
-                        _formatPrice(_fullResult!.prix_cable_global!)
-                    ].join(' · ')),
-            ];
+                      if (_fullResult?.longueur_cable_global_m != null) '${_fullResult!.longueur_cable_global_m} m',
+                      if (_fullResult?.prix_cable_global != null) _formatPrice(_fullResult!.prix_cable_global!),
+                    ].join(' · '),
+                  ),
+              ];
 
-            return Wrap(
-              spacing: gap,
-              runSpacing: gap,
-              children: kpis
-                  .map((w) => SizedBox(width: itemWidth, child: w))
-                  .toList(),
-            );
-          },
-        ),
-      ]),
+              return Wrap(
+                spacing: gap,
+                runSpacing: gap,
+                children: kpis.map((w) => SizedBox(width: itemWidth, child: w)).toList(),
+              );
+            },
+          ),
+        ],
+      ),
     );
   }
 
   Widget _kpi(String label, String value) {
     return Container(
-      // width: 160,  // ❌ supprimé pour laisser le LayoutBuilder gérer la largeur
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: Colors.grey[50],
         border: Border.all(color: Colors.grey[200]!),
         borderRadius: BorderRadius.circular(12),
       ),
-      child: Column(children: [
-        Text(label,
+      child: Column(
+        children: [
+          Text(label, textAlign: TextAlign.center, style: const TextStyle(color: Colors.grey, fontSize: 12)),
+          const SizedBox(height: 4),
+          Text(
+            value,
             textAlign: TextAlign.center,
-            style: const TextStyle(color: Colors.grey, fontSize: 12)),
-        const SizedBox(height: 4),
-        Text(value,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-                fontWeight: FontWeight.w800, color: Color(0xFF111827))),
-      ]),
+            style: const TextStyle(fontWeight: FontWeight.w800, color: Color(0xFF111827)),
+          ),
+        ],
+      ),
     );
   }
 
@@ -982,88 +1023,98 @@ class _CalculatePageState extends ConsumerState<CalculatePage> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-              color: Colors.grey.withOpacity(0.1),
-              spreadRadius: 1,
-              blurRadius: 10,
-              offset: const Offset(0, 2)),
+            color: Colors.grey.withOpacity(0.1),
+            spreadRadius: 1,
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
         ],
       ),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        const Text('Équipements recommandés',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-        const SizedBox(height: 16),
-        Column(children: [
-          if (eq.panneau != null)
-            _equipCard('Panneau solaire', Colors.blue, eq.panneau!,
-                trailing: 'Quantité: ${_fullResult!.nombre_panneaux}'),
-          if (eq.batterie != null) ...[
-            const SizedBox(height: 12),
-            _equipCard('Batterie', Colors.green, eq.batterie!,
-                trailing: 'Quantité: ${_fullResult!.nombre_batteries}'),
-          ],
-          if (eq.regulateur != null) ...[
-            const SizedBox(height: 12),
-            _equipCard('Régulateur', Colors.purple, eq.regulateur!,
-                trailing: 'Quantité: 1'),
-          ],
-          if (eq.onduleur != null) ...[
-            const SizedBox(height: 12),
-            _equipCard('Onduleur', Colors.orange, eq.onduleur!,
-                trailing: 'Quantité: 1'),
-          ],
-          if (eq.cable != null) ...[
-            const SizedBox(height: 12),
-            _equipCard('Câble', Colors.grey, eq.cable!,
-                trailing: (_fullResult?.longueur_cable_global_m != null ||
-                        _fullResult?.prix_cable_global != null)
-                    ? [
-                        if (_fullResult?.longueur_cable_global_m != null)
-                          'Longueur: ${_fullResult!.longueur_cable_global_m} m',
-                        if (_fullResult?.prix_cable_global != null)
-                          'Prix total: ${_formatPrice(_fullResult!.prix_cable_global!)}',
-                      ].join(' · ')
-                    : 'Selon installation'),
-          ],
-        ]),
-      ]),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('Équipements recommandés', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 16),
+          Column(
+            children: [
+              if (eq.panneau != null)
+                _equipCard(
+                  'Panneau solaire',
+                  Colors.blue,
+                  eq.panneau!,
+                  trailing: 'Quantité: ${_fullResult!.nombre_panneaux}',
+                ),
+              if (eq.batterie != null) ...[
+                const SizedBox(height: 12),
+                _equipCard(
+                  'Batterie',
+                  Colors.green,
+                  eq.batterie!,
+                  trailing: 'Quantité: ${_fullResult!.nombre_batteries}',
+                ),
+              ],
+              if (eq.regulateur != null) ...[
+                const SizedBox(height: 12),
+                _equipCard('Régulateur', Colors.purple, eq.regulateur!, trailing: 'Quantité: 1'),
+              ],
+              if (eq.onduleur != null) ...[
+                const SizedBox(height: 12),
+                _equipCard('Onduleur', Colors.orange, eq.onduleur!, trailing: 'Quantité: 1'),
+              ],
+              if (eq.cable != null) ...[
+                const SizedBox(height: 12),
+                _equipCard(
+                  'Câble',
+                  Colors.grey,
+                  eq.cable!,
+                  trailing: (_fullResult?.longueur_cable_global_m != null || _fullResult?.prix_cable_global != null)
+                      ? [
+                          if (_fullResult?.longueur_cable_global_m != null)
+                            'Longueur: ${_fullResult!.longueur_cable_global_m} m',
+                          if (_fullResult?.prix_cable_global != null)
+                            'Prix total: ${_formatPrice(_fullResult!.prix_cable_global!)}',
+                        ].join(' · ')
+                      : 'Selon installation',
+                ),
+              ],
+            ],
+          ),
+        ],
+      ),
     );
   }
 
-  Widget _equipCard(
-      String title, Color color, dynamic d, {required String trailing}) {
-    String price = _formatPrice(d.prix_unitaire);
+  Widget _equipCard(String title, Color color, dynamic d, {required String trailing}) {
+    final price = _formatPrice(d.prix_unitaire);
     return DecoratedBox(
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-            colors: [color.withOpacity(.08), color.withOpacity(.16)]),
+        gradient: LinearGradient(colors: [color.withOpacity(.08), color.withOpacity(.16)]),
         border: Border.all(color: color.withOpacity(.25)),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Padding(
         padding: const EdgeInsets.all(12),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Row(children: [
-            Icon(Icons.settings, color: color),
-            const SizedBox(width: 6),
-            Expanded(
-              child: Text(title,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontWeight: FontWeight.w700)),
-            ),
-          ]),
-          const SizedBox(height: 8),
-          _kv('Modèle', d.modele ?? '—'),
-          if (d.reference != null) _kv('Référence', d.reference, mono: true),
-          if (d.puissance_W != null) _kv('Puissance', '${d.puissance_W} W'),
-          if (d.capacite_Ah != null) _kv('Capacité', '${d.capacite_Ah} Ah'),
-          if (d.tension_nominale_V != null)
-            _kv('Tension', '${d.tension_nominale_V} V'),
-          _kv('Prix unitaire', price, strong: true),
-          const SizedBox(height: 6),
-          Text(trailing,
-              style: const TextStyle(fontSize: 12, color: Color(0xFF6B7280))),
-        ]),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(children: [
+              Icon(Icons.settings, color: color),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(title, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w700)),
+              ),
+            ]),
+            const SizedBox(height: 8),
+            _kv('Modèle', d.modele ?? '—'),
+            if (d.reference != null) _kv('Référence', d.reference, mono: true),
+            if (d.puissance_W != null) _kv('Puissance', '${d.puissance_W} W'),
+            if (d.capacite_Ah != null) _kv('Capacité', '${d.capacite_Ah} Ah'),
+            if (d.tension_nominale_V != null) _kv('Tension', '${d.tension_nominale_V} V'),
+            _kv('Prix unitaire', price, strong: true),
+            const SizedBox(height: 6),
+            Text(trailing, style: const TextStyle(fontSize: 12, color: Color(0xFF6B7280))),
+          ],
+        ),
       ),
     );
   }
@@ -1071,22 +1122,22 @@ class _CalculatePageState extends ConsumerState<CalculatePage> {
   Widget _kv(String k, String v, {bool strong = false, bool mono = false}) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 2),
-      child: Row(children: [
-        Expanded(
-          child: Text(k,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontSize: 12, color: Color(0xFF6B7280))),
-        ),
-        const SizedBox(width: 8),
-        Text(v,
+      child: Row(
+        children: [
+          Expanded(child: Text(k, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12, color: Color(0xFF6B7280)))),
+          const SizedBox(width: 8),
+          Text(
+            v,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
-                fontWeight: strong ? FontWeight.w700 : FontWeight.w500,
-                fontFamily: mono ? 'monospace' : null,
-                color: const Color(0xFF111827))),
-      ]),
+              fontWeight: strong ? FontWeight.w700 : FontWeight.w500,
+              fontFamily: mono ? 'monospace' : null,
+              color: const Color(0xFF111827),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

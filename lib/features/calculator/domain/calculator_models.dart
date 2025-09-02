@@ -214,12 +214,15 @@ class Equipment {
 class HelpItem {
   final String title;
   final String bodyHtml;
-  HelpItem({required this.title, required this.bodyHtml});
-  // ✅ ajoute ceci
-  factory HelpItem.fromJson(Map<String, dynamic> j) => HelpItem(
-    title: (j['title'] ?? '').toString(),
-    bodyHtml: (j['body_html'] ?? j['bodyHtml'] ?? j['body'] ?? '').toString(),
-  );
+  final String? key;
 
-  Map<String, dynamic> toJson() => {'title': title, 'body_html': bodyHtml};
+  const HelpItem({required this.title, required this.bodyHtml, this.key});
+
+  factory HelpItem.fromJson(Map<String, dynamic> json) {
+    return HelpItem(
+      title: json['title'] ?? '',
+      bodyHtml: json['body_html'] ?? json['body'] ?? '',
+      key: json['key'],
+    );
+  }
 }
