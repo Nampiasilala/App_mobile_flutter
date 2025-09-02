@@ -250,141 +250,152 @@ class _CalculatePageState extends ConsumerState<CalculatePage> {
 
   /* ------------------------------ PDF export ----------------------------- */
 
+  /* ------------------------------ PDF export ----------------------------- */
+
   Future<void> _downloadPdf() async {
     final res = ref.read(lastResultProvider);
     if (res == null) return;
 
     try {
-      final pdfResults = <String, dynamic>{
-        "=== PARAMÈTRES D'ENTRÉE ===": '',
-        'Consommation journalière': '${_ejour.text} Wh',
-        'Puissance max': '${_pmax.text} W',
-        "Jours d'autonomie": _nauto.text,
-        'Tension batterie': '${_vbat.value} V',
-        'Localisation': _loc.text,
-        'Irradiation': '${_hSolaire.text} kWh/m²/j',
-        'Hauteur vers le toit': '${_hVersToit.text} m',
-        'Stratégie de sélection':
-            _priorite.value == 'cout' ? 'Coût minimal' : 'Nombre minimal',
-        '': '',
-        '=== RÉSULTATS DU DIMENSIONNEMENT ===': '',
-        'Puissance totale': '${res.puissance_totale.toStringAsFixed(0)} W',
-        'Capacité batterie': '${res.capacite_batterie.toStringAsFixed(0)} Wh',
-        'Bilan énergétique annuel':
-            '${res.bilan_energetique_annuel.toStringAsFixed(2)} kWh',
-        'Coût total estimé': _formatPrice(res.cout_total),
-        'Nombre de panneaux': res.nombre_panneaux.toString(),
-        'Nombre de batteries': res.nombre_batteries.toString(),
-        ' ': '',
-      };
-
-      final eq = res.equipements_recommandes;
-      if (eq != null) {
-        pdfResults['=== ÉQUIPEMENTS RECOMMANDÉS ==='] = '';
-
-        final p = eq.panneau;
-        if (p != null) {
-          pdfResults['--- Panneau solaire ---'] = '';
-          if (p.modele != null) pdfResults['Modèle panneau'] = p.modele!;
-          if (p.reference != null) pdfResults['Référence panneau'] = p.reference!;
-          if (p.puissance_W != null) {
-            pdfResults['Puissance panneau'] = '${p.puissance_W} W';
-          }
-          pdfResults['Prix unitaire panneau'] =
-              '${p.prix_unitaire.toStringAsFixed(0)} ${p.devise ?? 'Ar'}';
-          pdfResults['Quantité panneaux'] = '${res.nombre_panneaux}';
-        }
-
-        final b = eq.batterie;
-        if (b != null) {
-          pdfResults['--- Batterie ---'] = '';
-          if (b.modele != null) pdfResults['Modèle batterie'] = b.modele!;
-          if (b.reference != null) pdfResults['Référence batterie'] = b.reference!;
-          if (b.capacite_Ah != null) {
-            pdfResults['Capacité batterie (Ah)'] = '${b.capacite_Ah} Ah';
-          }
-          if (b.tension_nominale_V != null) {
-            pdfResults['Tension batterie (V)'] = '${b.tension_nominale_V} V';
-          }
-          pdfResults['Prix unitaire batterie'] =
-              '${b.prix_unitaire.toStringAsFixed(0)} ${b.devise ?? 'Ar'}';
-          pdfResults['Quantité batteries'] = '${res.nombre_batteries}';
-        }
-
-        final r = eq.regulateur;
-        if (r != null) {
-          pdfResults['--- Régulateur ---'] = '';
-          if (r.modele != null) pdfResults['Modèle régulateur'] = r.modele!;
-          if (r.reference != null) pdfResults['Référence régulateur'] = r.reference!;
-          if (r.puissance_W != null) {
-            pdfResults['Puissance régulateur'] = '${r.puissance_W} W';
-          }
-          if (r.courant_A != null) {
-            pdfResults['Courant nominal'] = '${r.courant_A} A';
-          }
-          pdfResults['Prix unitaire régulateur'] =
-              '${r.prix_unitaire.toStringAsFixed(0)} ${r.devise ?? 'Ar'}';
-          pdfResults['Quantité régulateur'] = '1';
-        }
-
-        final o = eq.onduleur;
-        if (o != null) {
-          pdfResults['--- Onduleur ---'] = '';
-          if (o.modele != null) pdfResults['Modèle onduleur'] = o.modele!;
-          if (o.reference != null) pdfResults['Référence onduleur'] = o.reference!;
-          if (o.puissance_W != null) {
-            pdfResults['Puissance onduleur'] = '${o.puissance_W} W';
-          }
-          pdfResults['Prix unitaire onduleur'] =
-              '${o.prix_unitaire.toStringAsFixed(0)} ${o.devise ?? 'Ar'}';
-          pdfResults['Quantité onduleur'] = '1';
-        }
-
-        final c = eq.cable;
-        if (c != null) {
-          pdfResults['--- Câble ---'] = '';
-          if (c.modele != null) pdfResults['Modèle câble'] = c.modele!;
-          if (c.reference != null) pdfResults['Référence câble'] = c.reference!;
-          pdfResults['Prix unitaire câble'] =
-              '${c.prix_unitaire.toStringAsFixed(0)} ${c.devise ?? 'Ar'}';
-          pdfResults['Quantité câble'] = 'Selon installation';
-        }
-      }
-
-      if (res.topologie_pv != null ||
-          res.nb_pv_serie != null ||
-          res.nb_pv_parallele != null) {
-        pdfResults['Topologie PV'] =
-            res.topologie_pv ??
-                '${res.nb_pv_serie ?? "?"}S${res.nb_pv_parallele ?? "?"}P';
-      }
-      if (res.topologie_batterie != null ||
-          res.nb_batt_serie != null ||
-          res.nb_batt_parallele != null) {
-        pdfResults['Topologie Batteries'] =
-            res.topologie_batterie ??
-                '${res.nb_batt_serie ?? "?"}S${res.nb_batt_parallele ?? "?"}P';
-      }
-      if (res.longueur_cable_global_m != null) {
-        pdfResults['Longueur câble globale'] =
-            '${res.longueur_cable_global_m} m';
-      }
-      if (res.prix_cable_global != null) {
-        pdfResults['Prix total câble'] = _formatPrice(res.prix_cable_global!);
-      }
-
-      final doc = await buildReport(
-        title: 'Rapport de dimensionnement',
-        results: pdfResults,
+      // ✅ Création de l'objet PDFData pour le nouveau générateur
+      final pdfData = PDFData(
+        // Données de résultat (depuis CalculationResult)
+        result: {
+          'puissance_totale': res.puissance_totale.toDouble(),
+          'capacite_batterie': res.capacite_batterie.toDouble(),
+          'bilan_energetique_annuel': res.bilan_energetique_annuel.toDouble(),
+          'cout_total': res.cout_total.toDouble(),
+          'nombre_panneaux': res.nombre_panneaux,
+          'nombre_batteries': res.nombre_batteries,
+          
+          // Equipements recommandés
+          if (res.equipements_recommandes != null)
+            'equipements_recommandes': _buildEquipmentMap(res.equipements_recommandes!),
+          
+          // Topologies
+          if (res.topologie_pv != null)
+            'topologie_pv': res.topologie_pv!,
+          if (res.nb_pv_serie != null)
+            'nb_pv_serie': res.nb_pv_serie!,
+          if (res.nb_pv_parallele != null)
+            'nb_pv_parallele': res.nb_pv_parallele!,
+          if (res.topologie_batterie != null)
+            'topologie_batterie': res.topologie_batterie!,
+          if (res.nb_batt_serie != null)
+            'nb_batt_serie': res.nb_batt_serie!,
+          if (res.nb_batt_parallele != null)
+            'nb_batt_parallele': res.nb_batt_parallele!,
+          
+          // Câblage
+          if (res.longueur_cable_global_m != null)
+            'longueur_cable_global_m': res.longueur_cable_global_m!,
+          if (res.prix_cable_global != null)
+            'prix_cable_global': res.prix_cable_global!,
+        },
+        
+        // Données d'entrée (depuis les contrôleurs de formulaire)
+        inputData: {
+          'E_jour': double.tryParse(_ejour.text) ?? 0,
+          'P_max': double.tryParse(_pmax.text) ?? 0,
+          'N_autonomie': double.tryParse(_nauto.text) ?? 1,
+          'V_batterie': _vbat.value,
+          'H_solaire': double.tryParse(_hSolaire.text) ?? 0,
+          'H_vers_toit': double.tryParse(_hVersToit.text) ?? 10,
+          'localisation': _loc.text.trim(),
+          'priorite_selection': _priorite.value,
+        },
       );
+
+      // ✅ Utilisation du nouveau générateur PDF
+      final doc = await buildSolarReport(data: pdfData);
+
+      // ✅ Génération du nom de fichier avec timestamp
+      final now = DateTime.now();
+      final timestamp = now.millisecondsSinceEpoch;
+      final location = _loc.text.trim().isNotEmpty 
+          ? _loc.text.replaceAll(RegExp(r'[^\w\s-]'), '').replaceAll(' ', '-')
+          : 'calcul';
+      final filename = 'dimensionnement-solaire-${now.day.toString().padLeft(2, '0')}-${now.month.toString().padLeft(2, '0')}-${now.year}-$location-$timestamp.pdf';
+
       await Printing.sharePdf(
         bytes: await doc.save(),
-        filename:
-            'dimensionnement_${DateTime.now().millisecondsSinceEpoch}.pdf',
+        filename: filename,
       );
+
+      // Message de succès
+      _showSnackBar('Rapport PDF généré avec succès!', isError: false);
+      
     } catch (e) {
       _showSnackBar('Erreur lors de la génération du PDF: $e', isError: true);
     }
+  }
+
+  // ✅ Helper pour convertir les équipements en Map
+  Map<String, dynamic> _buildEquipmentMap(dynamic equipements) {
+    final result = <String, dynamic>{};
+    
+    // Panneau
+    if (equipements.panneau != null) {
+      final p = equipements.panneau!;
+      result['panneau'] = {
+        if (p.modele != null) 'modele': p.modele!,
+        if (p.reference != null) 'reference': p.reference!,
+        if (p.puissance_W != null) 'puissance_W': p.puissance_W!,
+        'prix_unitaire': p.prix_unitaire.toDouble(),
+        if (p.devise != null) 'devise': p.devise!,
+      };
+    }
+    
+    // Batterie
+    if (equipements.batterie != null) {
+      final b = equipements.batterie!;
+      result['batterie'] = {
+        if (b.modele != null) 'modele': b.modele!,
+        if (b.reference != null) 'reference': b.reference!,
+        if (b.capacite_Ah != null) 'capacite_Ah': b.capacite_Ah!,
+        if (b.tension_nominale_V != null) 'tension_nominale_V': b.tension_nominale_V!,
+        'prix_unitaire': b.prix_unitaire.toDouble(),
+        if (b.devise != null) 'devise': b.devise!,
+      };
+    }
+    
+    // Régulateur
+    if (equipements.regulateur != null) {
+      final r = equipements.regulateur!;
+      result['regulateur'] = {
+        if (r.modele != null) 'modele': r.modele!,
+        if (r.reference != null) 'reference': r.reference!,
+        if (r.puissance_W != null) 'puissance_W': r.puissance_W!,
+        if (r.courant_A != null) 'courant_A': r.courant_A!,
+        'prix_unitaire': r.prix_unitaire.toDouble(),
+        if (r.devise != null) 'devise': r.devise!,
+      };
+    }
+    
+    // Onduleur
+    if (equipements.onduleur != null) {
+      final o = equipements.onduleur!;
+      result['onduleur'] = {
+        if (o.modele != null) 'modele': o.modele!,
+        if (o.reference != null) 'reference': o.reference!,
+        if (o.puissance_W != null) 'puissance_W': o.puissance_W!,
+        'prix_unitaire': o.prix_unitaire.toDouble(),
+        if (o.devise != null) 'devise': o.devise!,
+      };
+    }
+    
+    // Câble
+    if (equipements.cable != null) {
+      final c = equipements.cable!;
+      result['cable'] = {
+        if (c.modele != null) 'modele': c.modele!,
+        if (c.reference != null) 'reference': c.reference!,
+        'prix_unitaire': c.prix_unitaire.toDouble(),
+        if (c.devise != null) 'devise': c.devise!,
+      };
+    }
+    
+    return result;
   }
 
   /* ------------------------------ UI helpers ----------------------------- */
@@ -688,7 +699,7 @@ class _CalculatePageState extends ConsumerState<CalculatePage> {
                 _numField(_hVersToit, 'Hauteur vers le toit (m)',
                     inputDecoration,
                     help:
-                        'Estimation longueur câble ≈ H × 2 × 1,2 (aller/retour + 20%)'),
+                        'fil de la maison au point le plus haut du toit'),
               ],
             ),
 
