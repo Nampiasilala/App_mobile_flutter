@@ -11,7 +11,9 @@ class AdminUsersService {
     );
     final data = res.data;
     if (data is List) {
-      return data.map((e) => AdminUser.fromJson(Map<String, dynamic>.from(e))).toList();
+      return data
+          .map((e) => AdminUser.fromJson(Map<String, dynamic>.from(e)))
+          .toList();
     }
     return <AdminUser>[];
   }
@@ -23,22 +25,21 @@ class AdminUsersService {
     );
   }
 
-  /// 🔎 Détails utilisateur (miroir du modal web)
-  /// GET /users/{id}/
+  /// GET /users/{id}/ (détails)
   Future<UserDetails> fetchUserDetails(int id) async {
     final res = await _dio.get(
       '/users/$id/',
       options: Options(extra: {'requiresAuth': true}),
     );
-
     final d = Map<String, dynamic>.from(res.data as Map);
 
     String _roleFrom(Map<String, dynamic> m) {
       final raw = m['role']?.toString();
       final isSuper = m['is_superuser'] == true;
       final isStaff = m['is_staff'] == true;
-      // Même logique que le web : si pas de role, Admin si superuser/staff, sinon Entreprise
-      return raw ?? ((isSuper || isStaff) ? 'Admin' : 'Entreprise');
+      // même logique que web : flags > role texte
+      if (isSuper || isStaff) return 'Admin';
+      return (raw?.isNotEmpty == true) ? raw! : 'Entreprise';
     }
 
     DateTime? _parseDate(Object? v) {
@@ -63,7 +64,19 @@ class AdminUsersService {
       description: d['description']?.toString(),
       isStaff: d['is_staff'] == true,
       isSuperuser: d['is_superuser'] == true,
+      isActive: d['is_active'] == true,
     );
+  }
+
+  /// PATCH /users/{id}/toggle-active/  { "is_active": true|false }
+  Future<bool> setActive(int id, bool value) async {
+    final res = await _dio.patch(
+      '/users/$id/toggle-active/',
+      data: {'is_active': value},
+      options: Options(extra: {'requiresAuth': true}),
+    );
+    final m = Map<String, dynamic>.from(res.data as Map);
+    return m['is_active'] == true;
   }
 }
 
@@ -73,8 +86,9 @@ class AdminUser {
   final int id;
   final String username;
   final String email;
-  final String role;       // "Admin" | "Modérateur" | "Utilisateur" | "Invité" | autre
+  final String role;       // "Admin" | "Entreprise" | autre
   final DateTime joinDate;
+  final bool isActive;
 
   AdminUser({
     required this.id,
@@ -82,20 +96,19 @@ class AdminUser {
     required this.email,
     required this.role,
     required this.joinDate,
+    required this.isActive,
   });
 
   factory AdminUser.fromJson(Map<String, dynamic> m) {
     final isSuper = m['is_superuser'] == true;
     final isStaff = m['is_staff'] == true;
     final rawRole = m['role']?.toString();
-    final role = rawRole ??
-        (isSuper
-            ? 'Admin'
-            : isStaff
-                ? 'Modérateur'
-                : 'Utilisateur');
+    final role = (isSuper || isStaff)
+        ? 'Admin'
+        : (rawRole?.isNotEmpty == true ? rawRole! : 'Entreprise');
 
-    final joined = _parseDate(m['date_joined'] ?? m['created_at']) ?? DateTime.now();
+    final joined =
+        _parseDate(m['date_joined'] ?? m['created_at']) ?? DateTime.now();
 
     return AdminUser(
       id: _asInt(m['id']),
@@ -103,13 +116,8 @@ class AdminUser {
       email: (m['email'] ?? '').toString(),
       role: role,
       joinDate: joined,
+      isActive: m['is_active'] == true,
     );
-  }
-
-  static int _asInt(Object? v) {
-    if (v is int) return v;
-    if (v is String) return int.tryParse(v) ?? 0;
-    return 0;
   }
 }
 
@@ -126,6 +134,7 @@ class UserDetails {
   final String? description;
   final bool? isStaff;
   final bool? isSuperuser;
+  final bool? isActive;
 
   UserDetails({
     required this.id,
@@ -140,6 +149,7 @@ class UserDetails {
     this.description,
     this.isStaff,
     this.isSuperuser,
+    this.isActive,
   });
 }
 

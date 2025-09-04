@@ -1,4 +1,3 @@
-// lib/features/admin/presentation/users_page.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -29,7 +28,8 @@ class _UsersPageState extends ConsumerState<UsersPage> {
   final _svc = AdminUsersService();
 
   bool _loading = true;
-  int? _deletingId; // ID en cours de suppression (affiche le spinner sur la ligne)
+  int? _deletingId;   // spinner suppression
+  int? _togglingId;   // spinner toggle actif
 
   List<AdminUser> _all = [];
   String _search = '';
@@ -128,10 +128,39 @@ class _UsersPageState extends ConsumerState<UsersPage> {
     }
   }
 
+  Future<void> _toggleActive(AdminUser u, bool value) async {
+    setState(() => _togglingId = u.id);
+    try {
+      final isActiveServer = await _svc.setActive(u.id, value);
+      if (!mounted) return;
+      setState(() {
+        _all = _all.map((x) {
+          if (x.id != u.id) return x;
+          return AdminUser(
+            id: x.id,
+            username: x.username,
+            email: x.email,
+            role: x.role,
+            joinDate: x.joinDate,
+            isActive: isActiveServer,
+          );
+        }).toList();
+      });
+      _snack(isActiveServer ? 'Compte activé' : 'Compte désactivé', success: true);
+    } catch (e) {
+      _snack('Échec de la mise à jour du statut : $e');
+    } finally {
+      if (mounted) setState(() => _togglingId = null);
+    }
+  }
+
   void _snack(String msg, {bool success = false}) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(msg), backgroundColor: success ? Colors.green.shade700 : null),
+      SnackBar(
+        content: Text(msg),
+        backgroundColor: success ? Colors.green.shade700 : null,
+      ),
     );
   }
 
@@ -224,12 +253,14 @@ class _UsersPageState extends ConsumerState<UsersPage> {
                             child: _UsersList(
                               users: _filtered,
                               deletingId: _deletingId,
+                              togglingId: _togglingId,
                               roleBg: _roleBg,
                               roleFg: _roleFg,
                               fmtDateLong: _fmtDateLong,
                               roleViewOf: _roleView,
                               onDelete: _confirmDelete,
                               onTapUser: _openDetails,
+                              onToggleActive: _toggleActive,
                             ),
                           ),
               ),
@@ -311,22 +342,26 @@ class _UsersList extends StatelessWidget {
   const _UsersList({
     required this.users,
     required this.deletingId,
+    required this.togglingId,
     required this.roleBg,
     required this.roleFg,
     required this.fmtDateLong,
     required this.roleViewOf,
     required this.onDelete,
     required this.onTapUser,
+    required this.onToggleActive,
   });
 
   final List<AdminUser> users;
   final int? deletingId;
+  final int? togglingId;
   final Color Function(String) roleBg;
   final Color Function(String) roleFg;
   final String Function(DateTime) fmtDateLong;
   final String Function(String rawRole) roleViewOf;
   final void Function(AdminUser) onDelete;
   final void Function(AdminUser) onTapUser;
+  final void Function(AdminUser, bool) onToggleActive;
 
   @override
   Widget build(BuildContext context) {
@@ -337,7 +372,11 @@ class _UsersList extends StatelessWidget {
       itemBuilder: (_, i) {
         final u = users[i];
         final isDel = deletingId == u.id;
+        final isToggling = togglingId == u.id;
         final viewRole = roleViewOf(u.role);
+
+        Color statusBg(bool active) => active ? const Color(0xFFDCFCE7) : const Color(0xFFFFE4E6);
+        Color statusFg(bool active) => active ? const Color(0xFF166534) : const Color(0xFFB91C1C);
 
         return Card(
           margin: EdgeInsets.zero,
@@ -375,6 +414,24 @@ class _UsersList extends StatelessWidget {
                             ],
                           ),
                         ),
+
+                        // --- Switch Actif/Inactif ---
+                        Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Switch.adaptive(
+                              value: u.isActive,
+                              onChanged: (isDel || isToggling) ? null : (v) => onToggleActive(u, v),
+                            ),
+                            if (isToggling)
+                              const SizedBox(
+                                height: 16,
+                                width: 16,
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              ),
+                          ],
+                        ),
+
                         SizedBox(
                           width: 48,
                           height: 48,
@@ -411,6 +468,22 @@ class _UsersList extends StatelessWidget {
                         side: BorderSide(color: roleBg(viewRole)),
                         visualDensity: VisualDensity.compact,
                         materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                      Chip(
+                        label: Text(u.isActive ? 'Actif' : 'Inactif',
+                            style: TextStyle(
+                              color: statusFg(u.isActive),
+                              fontWeight: FontWeight.w600,
+                            )),
+                        backgroundColor: statusBg(u.isActive),
+                        side: BorderSide(color: statusBg(u.isActive)),
+                        visualDensity: VisualDensity.compact,
+                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        avatar: Icon(
+                          u.isActive ? Icons.check_circle : Icons.block,
+                          size: 16,
+                          color: statusFg(u.isActive),
+                        ),
                       ),
                       Chip(
                         label: Text('Inscription : ${fmtDateLong(u.joinDate)}'),
@@ -515,6 +588,9 @@ class _UserDetailsSheet extends StatelessWidget {
             );
           }
 
+          Color statusBg(bool active) => active ? const Color(0xFFDCFCE7) : const Color(0xFFFFE4E6);
+          Color statusFg(bool active) => active ? const Color(0xFF166534) : const Color(0xFFB91C1C);
+
           return SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -574,6 +650,27 @@ class _UserDetailsSheet extends StatelessWidget {
                         title: 'Dernière connexion',
                         value: d.lastLogin != null ? _safeFmtDateTime(d.lastLogin!) : '—',
                         icon: Icons.schedule,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Chip(
+                      label: Text(
+                        (d.isActive ?? false) ? 'Actif' : 'Inactif',
+                        style: TextStyle(
+                          color: statusFg(d.isActive ?? false),
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      backgroundColor: statusBg(d.isActive ?? false),
+                      side: BorderSide(color: statusBg(d.isActive ?? false)),
+                      avatar: Icon(
+                        (d.isActive ?? false) ? Icons.check_circle : Icons.block,
+                        size: 16,
+                        color: statusFg(d.isActive ?? false),
                       ),
                     ),
                   ],
@@ -771,8 +868,7 @@ class _WebsiteItem extends StatelessWidget {
                 label: const Text('Ouvrir'),
                 onPressed: () async {
                   final ok = await launchUrl(uri, mode: LaunchMode.externalApplication);
-                  if (!ok) {
-                    if (!context.mounted) return;
+                  if (!ok && context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(content: Text('Impossible d’ouvrir le lien')),
                     );
